@@ -21,49 +21,74 @@ using std::endl;
 //#include "RooUnfoldTUnfold.h"
 
 //==============================================================================
-// Calculate the reconstructed energy
+// Smear the kinetic energy and cos thetas
 //==============================================================================
 
-void EReco( vector< double > E_mu, vector< double > p_mu, vector< double > cos_mu, vector< double > &E_nu_reco ){
+void Smearing( std::vector< double > T_mu, 
+               std::vector< double > cos_mu, 
+               std::vector< double > &T_mu_sm, 
+               std::vector< double > &cos_mu_sm ){
 
-    // Calculate the reconstructed energy and fill a vector of doubles with the result
-    // Define variables
-    double m_N  = 0.93828; // Nucleon madd, GeV
-    double m_mu = 0.10566; // Muon mass, GeV
+    // Initiate the random number generation
+    ROOT::Math::GSLRngMT *_random_gen = new ROOT::Math::GSLRngMT;
+    _random_gen->Initialize();
+    _random_gen->SetSeed( time( NULL ) );
+ 
+    int n_values = T_mu.size();
 
-    // Loop over the vectors and do the calculation
-    
-    if ( E_mu.size() != p_mu.size() 
-      || E_mu.size() != cos_mu.size() 
-      || p_mu.size() != cos_mu.size() ){
-      
-        cerr << " Vectors need to be the same size " << endl;
-        exit(1);
-    
+    if ( T_mu.size() != cos_mu.size() ){
+        std::cerr << " Vectors must be the same length " << endl;
     }
+    // Event by event, generate Tmu_prime and Tpi_prime: lognormal
+    // Then find thetamu_prime and thetapi_prime: gaussian
+    for ( int i = 0; i < n_values; ++i ){
+ 
+        // -------------------------------------------------------
+        //                   Kinetic energy
+        // -------------------------------------------------------
+        // Calculate the mean and sigma for the LogNormal function
+        //     zeta  = TMath::Log( m * ( 1 / sqrt( 1 + ( var / pow( m, 2 ) ) ) ) );
+        //     sigma = sqrt( log( 1 + ( var / pow( m, 2 ) ) ) );
+        //     m     = expectation value = Tl
+        //     var   = variance = s.d.^2 = ( Tl * 0.1 ) ^ 2
+ 
+        double var_mu     = TMath::Power( T_mu[i] * 0.1, 2 );
+        double sigma_mu   = TMath::Sqrt( TMath::Log( 1 + ( var_mu / TMath::Power( T_mu[i], 2 ) ) ) );
+        double zeta_mu    = TMath::Log( T_mu[i] * ( 1 / TMath::Sqrt( 1 + ( var_mu / TMath::Power( T_mu[i], 2 ) ) ) ) );
+        double lognorm_mu = _random_gen->LogNormal( zeta_mu, sigma_mu );
+ 
+        // -------------------------------------------------------
+        //                  Cos theta
+        // -------------------------------------------------------
+ 
+        // Calculate the mean and sigma for the LogNormal function
+        //      theta = acos(costtheta)
+        //      var   = 5 degrees
+ 
+        double sd_thetamu    = TMath::Pi() / 36; // 5 degrees
+        double gaus_theta    = TMath::ACos( cos_mu[i] ) + _random_gen->Gaussian( sd_thetamu );
+        double gaus_costheta = TMath::Cos( gaus_theta );
+ 
+        if ( T_mu[i] > 0.05 ){
+            T_mu_sm.push_back(lognorm_mu);
+            cos_mu_sm.push_back(gaus_costheta);
+ 
+        }
 
-    int vect_size = E_mu.size();
-
-    for ( int i = 0; i < vect_size; ++i ){
-        double e_reco;
-
-        e_reco = ( 1 / ( 1 - ( ( 1 / m_N ) * ( E_mu[i] - p_mu[i] * cos_mu[i] ) ) ) ) * ( E_mu[i] - ( ( 1 / ( 2 * m_N ) ) * m_mu * m_mu ) );
-
-        E_nu_reco.push_back( e_reco );
     }
-
 }
+
 
 //==============================================================================
 // The main function
 //==============================================================================
-void neutrino_energy_unfolding() { 
+void muon_kinematics_unfolding() { 
     //==============================================================================
     // Reading in the root file 
     //==============================================================================
     TFile f("/hepstore/rjones/Exercises/Flavours/Default+MEC/sbnd/1M/gntp.10000.gst.root");
     if(f.IsZombie()){
-        cerr << " Error opening file " << endl;
+        std::cerr << " Error opening file " << endl;
         exit(1);
     }
     else{
@@ -76,26 +101,34 @@ void neutrino_energy_unfolding() {
 
     TTree *gst = (TTree*) f.Get("gst");
 
-    TBranch *b_nu_e  = gst->GetBranch("Ev");
-    TBranch *b_mu_e  = gst->GetBranch("El");
-    TBranch *b_mu_p  = gst->GetBranch("pl");
-    TBranch *b_theta = gst->GetBranch("cthl");
+    TBranch *b_Ef    = gst->GetBranch("Ef");
+    TBranch *b_Ev    = gst->GetBranch("Ev");
+    TBranch *b_El    = gst->GetBranch("El");
+    TBranch *b_pl    = gst->GetBranch("pl");
+    TBranch *b_cthl  = gst->GetBranch("cthl");
+    TBranch *b_cthf  = gst->GetBranch("cthf");
     TBranch *b_nfpi0 = gst->GetBranch("nfpi0");
     TBranch *b_nfpip = gst->GetBranch("nfpip");
     TBranch *b_nfpim = gst->GetBranch("nfpim");
     TBranch *b_cc    = gst->GetBranch("cc");
     TBranch *b_nc    = gst->GetBranch("nc");
+    TBranch *b_nf    = gst->GetBranch("nf");
     TBranch *b_pdgf  = gst->GetBranch("pdgf");
     TBranch *b_fspl  = gst->GetBranch("fspl");
 
+    // Variables 
+    double m_mu = 0.10566; // Muon mass, GeV
+    double m_pi = 0.13957; // Charged pion mass, GeV
+
     // Define and fill vectors for the muon energy, momentum and opening angle
     // Define an empty vector to hold the reconstructed energy
-    vector< double > mu_e;
-    vector< double > mu_p;
-    vector< double > mu_cth;
-    vector< double > nu_e;
-    vector< double > nu_e_reco;
+    std::vector< double > T_mu_vect;
+    std::vector< double > T_pi_vect;
+    std::vector< double > cos_mu_vect;
+    std::vector< double > cos_pi_vect;
 
+    std::vector< int > Impurity;
+    
     int n_entries = gst->GetEntries();
 
     // Fill the vectors
@@ -103,119 +136,264 @@ void neutrino_energy_unfolding() {
     
         gst->GetEntry(i);
     
-        // Fill vectors if primary lepton is a muon and it is a cc0pi event
-        if ( b_fspl->GetLeaf( "fspl" )->GetValue() == 13
-          && b_nfpi0->GetLeaf( "nfpi0" )->GetValue() == 0 
-          && b_nfpip->GetLeaf( "nfpip" )->GetValue() == 0 
-          && b_nfpim->GetLeaf( "nfpim" )->GetValue() == 0
-          && b_cc->GetLeaf( "cc" )->GetValue() == 1 ){
-    
-            nu_e.push_back(   b_nu_e->GetLeaf( "Ev" )->GetValue() );
-            mu_e.push_back(   b_mu_e->GetLeaf( "El" )->GetValue() );
-            mu_p.push_back(   b_mu_p->GetLeaf( "pl" )->GetValue() );
-            mu_cth.push_back( b_theta->GetLeaf( "cthl" )->GetValue() );
-    
+        int nf    = b_nf->GetLeaf("nf")->GetValue();
+        int fspl  = b_fspl->GetLeaf("fspl")->GetValue();
+        int nfpi0 = b_nfpi0->GetLeaf("nfpi0")->GetValue();
+        int nfpip = b_nfpip->GetLeaf("nfpip")->GetValue();
+        int nfpim = b_nfpim->GetLeaf("nfpim")->GetValue();
+ 
+        double e_mu   = b_El->GetLeaf("El")->GetValue();
+        double cos_mu = b_cthl->GetLeaf("cthl")->GetValue();
+ 
+        double T_mu;
+ 
+        // Calculate the kinetic energy for muons
+        if ( fspl == 13 ){
+ 
+            // Energy of the final state primary lepton
+            T_mu = e_mu - m_mu;
+ 
+            T_mu_vect.push_back(T_mu);
+            cos_mu_vect.push_back(cos_mu);
+ 
         }
+        // If the final state primary is a lepton, push back a number that will
+        // be removed in the cuts later
+        else if ( fspl == 11 ){
+            T_mu_vect.push_back(-99999);
+            cos_mu_vect.push_back(-99999);
+        }
+        else{
+            T_mu_vect.push_back(-99999);
+            cos_mu_vect.push_back(-99999);
+        }
+
+        if ( nfpip + nfpim == 1 && nfpi0 == 0 ){
+ 
+            // For all the final state hadronic particles, get their pdg code
+            for ( int j = 0; j < nf; ++j ) {
+ 
+                b_pdgf->GetEntry(i);
+                b_cthf->GetEntry(i);
+                b_Ef->GetEntry(i);
+ 
+                int pdgf      = b_pdgf->GetLeaf("pdgf")->GetValue(j);
+                double e_pi   = b_Ef->GetLeaf("Ef")->GetValue(j);
+                double cos_pi = b_cthf->GetLeaf("cthf")->GetValue(j);
+ 
+ 
+                // Calculate the kinetic energy of the pions
+                if (pdgf == 211 || pdgf == -211 ){
+ 
+                double T_pi = e_pi - m_pi;
+ 
+                T_pi_vect.push_back(T_pi);
+                cos_pi_vect.push_back(cos_pi);
+        
+                }
+            }
+        }
+        else{
+            T_pi_vect.push_back(-99999);
+            cos_pi_vect.push_back(-99999);
+        }
+
+        // Apply the impurity cut
+        if ( b_nc->GetLeaf("nc")->GetValue() != 0 && nfpip + nfpim == 1 && nfpi0 == 0 ){
+            int random;
+            random = rand() % 5 + 1;
+
+            // If the random number = 5 then push back a 1 onto the vector
+            // If the random number < 5 push back a 0
+            if( random == 5 ){
+                Impurity.push_back(1);
+            }
+            else{
+                Impurity.push_back(0);
+            }
+        }
+        else{
+            Impurity.push_back(0);
+        } 
     }
 
-    // Get the reconstructed energies
-    EReco( mu_e, mu_p, mu_cth, nu_e_reco );
 
+    //==============================================================================
+    // Smearing
+    //==============================================================================
+
+    std::vector< double > T_mu_prime;
+    std::vector< double > cos_mu_prime;
+    
+    // Fill the smeared T and cos vectors 
+    Smearing( T_mu_vect, cos_mu_vect, T_mu_prime, cos_mu_prime );
+    
+    
     //==============================================================================
     // Define the histograms
     //==============================================================================
     
-    TCanvas *c    = new TCanvas( "c", "Unfolding", 800, 600 );
-
-    TLegend *l    = new TLegend( 0.68, 0.68, 0.88, 0.88 );
-
-    TH1D *hTrue   = new TH1D( "hTrue",   "Incoming neutrino energy, CC0#pi", 200./4., 0., 10./4. );
-    TH1D *hTrue1  = new TH1D( "hTrue1",  "Incoming neutrino energy, training, CC0#pi", 200./4., 0., 10./4. );
-    TH1D *hTrue2  = new TH1D( "hTrue2",  "Incoming neutrino energy, unfolding, CC0#pi", 200./4., 0., 10./4. );
-
-    TH1D *hReco   = new TH1D( "hReco",   "Reconstructed neutrino energy, CC0#pi", 200./4., 0., 10./4. );
-    TH1D *hReco1  = new TH1D( "hReco1",  "Reconstructed neutrino energy, training, CC0#pi", 200./4., 0., 10./4. );
-    TH1D *hReco2  = new TH1D( "hReco2",  "Reconstructed neutrino energy, unfolding, CC0#pi", 200./4., 0., 10./4. );
+    TCanvas *c = new TCanvas( "c", "Unfolding", 800, 600 );
     
+    // Fill 2 histograms with the first and last half of the distribution for training 
+    // And unfolding separately
+    TH2D *h_un = new TH2D( "h_un", " CC0#pi, truth ", 20, -1, 1, 18, 0, 2 );     
+    gst->Draw("( El - 0.10566 ):cthl>>h_un","fspl == 13 && cc && (nfpip + nfpim + nfpi0  == 0)","colz");
+ 
+    TH2D *h_un_1 = new TH2D( "h_un_1", " CC0#pi, truth ", 20, -1, 1, 18, 0, 2 );     
+    gst->Draw("( El - 0.10566 ):cthl>>h_un_1","iev <= 500000 && fspl == 13 && cc && (nfpip + nfpim + nfpi0  == 0)","colz");
+ 
+    TH2D *h_un_2 = new TH2D( "h_un_2", " CC0#pi, truth ", 20, -1, 1, 18, 0, 2 );     
+    gst->Draw("( El - 0.10566 ):cthl>>h_un_2","iev > 500000 && fspl == 13 && cc && (nfpip + nfpim + nfpi0  == 0)","colz");
+ 
+    h_un_2->SetStats(kFALSE);
+    h_un_2->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_un_2->GetYaxis()->SetTitle("T_{#mu}");
+    c->SetRightMargin(0.13);
+    //c->SetLogz();
+    c->SaveAs("working_dir/unfolded_distributions/true_kinematic_distribution.png");
+
+    TH2D *h_sm   = new TH2D( "h_sm", " CC0#pi, smeared ", 20, -1, 1, 18, 0, 2 );    
+    TH2D *h_sm_1 = new TH2D( "h_sm_1", " CC0#pi, smeared ", 20, -1, 1, 18, 0, 2 );    
+    TH2D *h_sm_2 = new TH2D( "h_sm_2", " CC0#pi, smeared ", 20, -1, 1, 18, 0, 2 );    
+   
     //==============================================================================
     // Train the unfolding algorithm and get the response matrix
     //==============================================================================
 
-    int n_half = TMath::Floor( double( nu_e_reco.size() ) / 2. );
-    int n_all  = nu_e_reco.size();
-    
+    int n_half = TMath::Floor( double( n_entries ) / 2. );
+
     cout << "==================================== TRAIN ====================================" << endl;
-    RooUnfoldResponse response ( 200./4., 0., 10./4. );
-
+    
+    RooUnfoldResponse response ( h_sm, h_un );
+    
     for ( int i = 0; i < n_half; ++i ){
-
-        // Fill the histograms
-        hTrue1->Fill( nu_e[i] );
-        hReco1->Fill( nu_e_reco[i] );
+ 
+        gst->GetEntry(i);
+ 
+        int cc    = b_cc->GetLeaf( "cc" )->GetValue();
+        int nc    = b_nc->GetLeaf( "nc" )->GetValue();
+        int fspl  = b_fspl->GetLeaf( "fspl" )->GetValue();
+        int nfpip = b_nfpip->GetLeaf( "nfpip" )->GetValue();
+        int nfpim = b_nfpim->GetLeaf( "nfpim" )->GetValue();
+        int nfpi0 = b_nfpi0->GetLeaf( "nfpi0" )->GetValue();
+ 
+        // Set the energy and impurity cuts
+        // Filling the signal ntuple
+        if ( fspl == 13
+          && cc
+          && ( nfpip + nfpim + nfpi0 == 0 )
+          && T_mu_vect[i] != -99999 ){
+ 
+            // Filling the cuts histogram
+            h_sm_1->Fill( cos_mu_prime[i], T_mu_prime[i] );
+            response.Fill( cos_mu_prime[i], T_mu_prime[i], cos_mu_vect[i], T_mu_vect[i]  );       
+        }
+        else if ( Impurity[i] == 1
+               && T_pi_vect[i] > 0.05 ){
+ 
+            h_sm_1->Fill( cos_pi_vect[i], T_pi_vect[i] );
+            response.Fill( cos_pi_vect[i], T_pi_vect[i], cos_mu_vect[i], T_mu_vect[i] );
         
-        // Fill the response histograms
-        response.Fill( nu_e_reco[i], nu_e[i] );
-    }
+        }
 
-    for ( int i = n_half; i < n_all; ++i ){
-
-        // Fill the histograms
-        hTrue2->Fill( nu_e[i] );
-        hReco2->Fill( nu_e_reco[i] );
     }
+    
+    //==============================================================================
+    // Fill the true histogram for comparison with the unfolded histogram 
+    //==============================================================================
+
+    for ( int i = n_half; i < n_entries; ++i ){
+ 
+        gst->GetEntry(i);
+ 
+        int cc    = b_cc->GetLeaf( "cc" )->GetValue();
+        int nc    = b_nc->GetLeaf( "nc" )->GetValue();
+        int fspl  = b_fspl->GetLeaf( "fspl" )->GetValue();
+        int nfpip = b_nfpip->GetLeaf( "nfpip" )->GetValue();
+        int nfpim = b_nfpim->GetLeaf( "nfpim" )->GetValue();
+        int nfpi0 = b_nfpi0->GetLeaf( "nfpi0" )->GetValue();
+ 
+        // Set the energy and impurity cuts
+        if ( fspl == 13
+          && cc
+          && ( nfpip + nfpim + nfpi0 == 0 )
+          && T_mu_vect[i] > 0.05 ){
+ 
+            // Filling the cuts histogram
+            h_sm_2->Fill(cos_mu_prime[i], T_mu_prime[i]);
+        }
+        else if ( Impurity[i] == 1
+               && T_pi_vect[i] > 0.05 ){
+ 
+            h_sm_2->Fill(cos_pi_vect[i], T_pi_vect[i]);
+        }
+
+    }
+    
+    //==============================================================================
+    // Unfold the first half of the smeared statistics
+    //==============================================================================
 
     cout << "==================================== UNFOLD ===================================" << endl;
-    RooUnfoldBayes    unfold   ( &response, hReco2, 1 ); // Try different numbers of iterations
+    RooUnfoldBayes    unfold   ( &response, h_sm_2, 1 ); // Try different numbers of iterations
 
     // Unfold
     // Histogram output
-    TH1D *hUnfold =  (TH1D*) unfold.Hreco();
+    TH2D *hUnfold =  (TH2D*) unfold.Hreco();
     
     // Vector and covariance matrix output
-    TVectorD unfolded_dist = unfold.Vreco();
-    TMatrixD unfolded_errs = unfold.Ereco;
+    //TVectorD unfolded_dist = unfold.Vreco();
+    //TMatrixD unfolded_errs = unfold.Ereco;
 
-    l->AddEntry( hUnfold, "Unfolded", "p" );
-    l->AddEntry( hReco2, "Reconstructed", "l" );
-    l->AddEntry( hTrue2, "True", "l" );
-
-    
-    unfold.PrintTable (cout, hTrue2);
+    unfold.PrintTable (cout, h_un_2);
    
     // double norm = hUnfold->Integral();
 
-    hUnfold->GetYaxis()->SetTitleOffset(1.5);
     hUnfold->SetStats(kFALSE);
-    hUnfold->GetXaxis()->SetTitle("E_{#nu}");
-    hUnfold->GetYaxis()->SetTitle("Number of events");
-    hUnfold->SetTitle("Unfolded reconstructed E_{#nu}");
-    hUnfold->SetMarkerStyle(2);
-    //hUnfold->Scale(1/norm);
-    hUnfold->Draw();
+    hUnfold->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    hUnfold->GetYaxis()->SetTitle("T_{#mu}");
+    hUnfold->SetTitle("Unfolded #mu kinematics");
+    hUnfold->Draw("colz");
     
-    hReco2->SetLineColor( kRed + 2 );
-    //hReco2->Scale(1/norm);
-    hReco2->Draw("SAME");
-    
-    hTrue2->SetLineColor( kGreen + 2 );
-    //hTrue2->Scale(1/norm);
-    hTrue2->Draw("SAME");
+    c->SetRightMargin(0.13);
+    //c->SetLogz();
+    c->SaveAs( "working_dir/unfolded_distributions/2D_unfolding.png" );
+
+    //==============================================================================
+    // Fill the comparison histogram and draw
+    //==============================================================================
    
-    l->Draw();
+    TH2D *h_comp = new TH2D( *h_un_2 );
+    h_comp->Add( hUnfold, -1 );
+    //h_comp->Divide( h_un_2 );
+    //h_comp->Scale( 100 );
 
-    c->SaveAs( "my_work/unfolded_distributions/1D_unfolding_ex.png" );
+    h_comp->SetStats(kFALSE);
+    h_comp->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_comp->GetYaxis()->SetTitle("T_{#mu}");
+    h_comp->SetTitle("CC0#pi, percentage difference between true and unfolded");
+    h_comp->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    //c->SetLogz();
+    c->SaveAs( "working_dir/unfolded_distributions/true_unfolding_comp.png" );
 
+    //==============================================================================
+    // Delete pointers
+    //==============================================================================
     delete hUnfold;
 
-    delete hReco;
-    delete hReco1;
-    delete hReco2;
+    delete h_comp;
 
-    delete hTrue;
-    delete hTrue1;
-    delete hTrue2;
+    delete h_sm;
+    delete h_sm_1;
+    delete h_sm_2;
+
+    delete h_un;
+    delete h_un_1;
+    delete h_un_2;
     
     delete c;
-    delete l;
-
+    
 } 
