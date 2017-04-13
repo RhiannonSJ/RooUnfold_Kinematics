@@ -234,7 +234,9 @@ void muon_kinematics_unfolding() {
     //==============================================================================
     
     TCanvas *c = new TCanvas( "c", "Unfolding", 800, 600 );
-    
+   
+    gStyle->SetPalette(55);
+
     // Fill 2 histograms with the first and last half of the distribution for training 
     // And unfolding separately
     TH2D *h_un = new TH2D( "h_un", " CC0#pi, truth ", 20, -1, 1, 18, 0, 2 );     
@@ -372,7 +374,7 @@ void muon_kinematics_unfolding() {
     h_comp->SetStats(kFALSE);
     h_comp->GetXaxis()->SetTitle("cos#theta_{#mu}");
     h_comp->GetYaxis()->SetTitle("T_{#mu}");
-    h_comp->SetTitle("CC0#pi, percentage difference between true and unfolded");
+    h_comp->SetTitle("CC0#pi, bin content difference between true and unfolded");
     h_comp->Draw("colz");
     
     c->SetRightMargin(0.13);
