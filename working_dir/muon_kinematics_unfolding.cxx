@@ -368,8 +368,8 @@ void muon_kinematics_unfolding() {
    
     TH2D *h_comp = new TH2D( *h_un_2 );
     h_comp->Add( hUnfold, -1 );
-    //h_comp->Divide( h_un_2 );
-    //h_comp->Scale( 100 );
+    h_comp->Divide( h_un_2 );
+    h_comp->Scale( 100 );
 
     h_comp->SetStats(kFALSE);
     h_comp->GetXaxis()->SetTitle("cos#theta_{#mu}");
