@@ -17,8 +17,6 @@ using std::endl;
 
 #include "../src/RooUnfoldResponse.h"
 #include "../src/RooUnfoldBayes.h"
-//#include "RooUnfoldSvd.h"
-//#include "RooUnfoldTUnfold.h"
 
 //==============================================================================
 // Smear the kinetic energy and cos thetas
@@ -78,13 +76,192 @@ void Smearing( std::vector< double > T_mu,
     }
 }
 
+//==============================================================================
+// Slice the unfolded histogram
+//==============================================================================
+
+void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco ){
+
+    // Firstly, loop over all Tmu bins on draw slices in cos theta mu
+    // Take the bin edges to be the title
+    int x_bins = h_unfolded->GetNbinsX(); // Cos theta
+    int y_bins = h_unfolded->GetNbinsY(); // Tmu
+
+    TCanvas *c_Tmu   = new TCanvas ( "c_Tmu", "", 800, 600 );
+   
+    TLegend *leg_T   = new TLegend( 0.12, 0.78, 0.28, 0.88 );
+
+    TH1D *h_Tmu      = new TH1D ( "h_Tmu", "", x_bins, -1, 1 );
+    TH1D *h_Tmu_true = new TH1D ( "h_Tmu_true", "", x_bins, -1, 1 );
+    TH1D *h_Tmu_reco = new TH1D ( "h_Tmu_reco", "", x_bins, -1, 1 );
+    
+    leg_T->AddEntry( h_Tmu, " Unfolded ", "l" );
+    leg_T->AddEntry( h_Tmu_true, " True ", "l" );
+    leg_T->AddEntry( h_Tmu_reco, " Reco ", "l" );
+    
+    for ( int i = 1; i <= y_bins; ++i ){
+
+        // Define the histograms
+        // Get the lower and upper bin edges of the y axis
+        double low_edge_T;
+        double up_edge_T;
+
+        low_edge_T = h_unfolded->GetYaxis()->GetBinLowEdge(i);
+        up_edge_T = h_unfolded->GetYaxis()->GetBinLowEdge(i + 1);
+   
+        // Make the title for the current histogram and the file name
+        // Clear the title for the new loop
+        stringstream conv;
+        conv.clear();
+
+        string title;
+        title.clear();
+
+        char file_name[1024];
+
+        conv << setprecision(4) << "working_dir/unfolded_distributions/Tmu_slice_" << low_edge_T << ";" << up_edge_T << ".png";
+        title = conv.str();
+        
+        strcpy( file_name, title.c_str() );
+
+        // For the title of the histogram
+        stringstream hist;
+        hist.clear();
+
+        char hist_name[1024];
+        string temp1;
+
+        hist << setprecision(4) << "T_{#mu} slice: " << low_edge_T << "_" << up_edge_T;
+        temp1 = hist.str();
+
+        strcpy( hist_name, temp1.c_str() );
+
+        // Fill the histogram
+        for ( int j = 1; j <= x_bins; ++j ){
+            h_Tmu->SetBinContent( j, h_unfolded->GetBinContent(j, i) );
+            h_Tmu_true->SetBinContent( j, h_true->GetBinContent(j, i) );
+            h_Tmu_reco->SetBinContent( j, h_reco->GetBinContent(j, i) );
+        }
+
+        h_Tmu->Draw();
+        h_Tmu_true->Draw("same");
+        h_Tmu_reco->Draw("same");
+        h_Tmu->SetTitle(hist_name);
+        h_Tmu->GetXaxis()->SetTitle("cos#theta_{#mu}");   
+        h_Tmu->GetYaxis()->SetTitle("d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");   
+        h_Tmu->SetLineColor( kRed + 2 );
+        h_Tmu_true->SetLineColor( kGreen + 2 );
+        h_Tmu_reco->SetLineColor( kBlue + 2 );
+        h_Tmu_reco->SetLineStyle( 7 );
+
+        h_Tmu->SetTitleOffset(1.1, "Y");
+        h_Tmu->SetStats(kFALSE);
+
+        leg_T->Draw();
+        c_Tmu->SaveAs(file_name);
+
+    } 
+   
+    delete h_Tmu;
+    delete h_Tmu_true;
+    delete h_Tmu_reco;
+
+    delete c_Tmu;
+    
+    delete leg_T;
+
+    TCanvas *c_cosmu   = new TCanvas ( "c_cosmu", "", 800, 600 );
+    
+    TLegend *leg_c     = new TLegend( 0.72, 0.78, 0.88, 0.88 );
+
+    TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0, 2 );
+    TH1D *h_cosmu_true = new TH1D ( "h_cosmu_true", "", y_bins, 0, 2 );
+    TH1D *h_cosmu_reco = new TH1D ( "h_cosmu_reco", "", y_bins, 0, 2 );
+     
+    leg_c->AddEntry( h_cosmu, " Unfolded ", "l" );
+    leg_c->AddEntry( h_cosmu_true, " True ", "l" );
+    leg_c->AddEntry( h_cosmu_reco, " Reco ", "l" );
+    
+    // Cos theta mu slices
+    for ( int i = 1; i <= x_bins; ++i ){
+
+        // Define the histograms
+        // Get the lower and upper bin edges of the y axis
+        double low_edge_cos;
+        double up_edge_cos;
+
+        low_edge_cos = h_unfolded->GetXaxis()->GetBinLowEdge(i);
+        up_edge_cos = h_unfolded->GetXaxis()->GetBinLowEdge(i + 1);
+   
+        // Make the title for the current histogram and the file name
+        // Clear the title for the new loop
+        stringstream conv1;
+        conv1.clear();
+
+        string title1;
+        title1.clear();
+
+        char file_name1[1024];
+
+        conv1 << setprecision(4) << "working_dir/unfolded_distributions/cos_thetamu_slice_" << low_edge_cos << ";" << up_edge_cos << ".png";
+        title1 = conv1.str();
+        
+        strcpy( file_name1, title1.c_str() );
+
+        // For the title of the histogram
+        stringstream hist1;
+        hist1.clear();
+
+        char hist_name1[1024];
+        string temp2;
+
+        hist1 << setprecision(4) << "cos#theta_{#mu} slice: " << low_edge_cos << "," << up_edge_cos;
+        temp2 = hist1.str();
+
+        strcpy( hist_name1, temp2.c_str() );
+
+        // Fill the histogram
+        for ( int j = 1; j <= y_bins; ++j ){
+            h_cosmu->SetBinContent( j, h_unfolded->GetBinContent(i, j) );
+            h_cosmu_true->SetBinContent( j, h_true->GetBinContent(i, j) );
+            h_cosmu_reco->SetBinContent( j, h_reco->GetBinContent(i, j) );
+        }
+
+        h_cosmu->Draw();
+        h_cosmu_true->Draw("same");
+        h_cosmu_reco->Draw("same");
+        h_cosmu->SetTitle(hist_name1);
+        h_cosmu->GetXaxis()->SetTitle("T_{#mu}");   
+        h_cosmu->GetYaxis()->SetTitle("d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");   
+        h_cosmu->SetLineColor( kRed + 2 );
+        h_cosmu_true->SetLineColor( kGreen + 2 );
+        h_cosmu_reco->SetLineColor( kBlue + 2 );
+        h_cosmu_reco->SetLineStyle( 7 );
+        h_cosmu->SetTitleOffset(1.1, "Y");
+        h_cosmu->SetStats(kFALSE);
+
+        leg_c->Draw();
+        c_cosmu->SaveAs(file_name1);
+
+    } 
+    
+    delete h_cosmu;
+    delete h_cosmu_true;
+    delete h_cosmu_reco;
+
+    delete c_cosmu;
+
+    delete leg_c;
+
+}
 
 //==============================================================================
 // The main function
 //==============================================================================
 void muon_kinematics_unfolding() { 
+    
     //==============================================================================
-    // Reading in the root file 
+    // Reading in the event root file 
     //==============================================================================
     TFile f("/hepstore/rjones/Exercises/Flavours/Default+MEC/sbnd/1M/gntp.10000.gst.root");
     if(f.IsZombie()){
@@ -92,11 +269,47 @@ void muon_kinematics_unfolding() {
         exit(1);
     }
     else{
-        cout << "============================== Default + MEC open =============================" << endl;
+        cout << "======================== Default + MEC event file open ========================" << endl;
     }
 
     //==============================================================================
-    // Get everything from the tree
+    // Reading in the flux root file 
+    //==============================================================================
+    TFile fflux("/hepstore/rjones/Exercises/Fluxes/sbn_FHC_flux_hist.root");
+    if(f.IsZombie()){
+        std::cerr << " Error opening file " << endl;
+        exit(1);
+    }
+    else{
+        cout << "============================ SBND flux file open ==============================" << endl;
+    }
+
+    //==============================================================================
+    // Reading in the efficiency root file 
+    //==============================================================================
+    TFile feff("/hepstore/rjones/Exercises/Kinematics_Unfolding/working_dir/efficiency.root");
+    if(f.IsZombie()){
+        std::cerr << " Error opening file " << endl;
+        exit(1);
+    }
+    else{
+        cout << "========================= Efficiency flux file open ==========================" << endl;
+    }
+    
+    //==============================================================================
+    // Get the SBND flux histogram
+    //==============================================================================
+    
+    TH1D *h_flux = (TH1D*) fflux.Get("h_numu_110m");
+
+    //==============================================================================
+    // Get the efficiency flux histogram
+    //==============================================================================
+    
+    TH2D *h_eff = (TH2D*) feff.Get("h_eff");
+
+    //==============================================================================
+    // Get everything from the event tree
     //==============================================================================
 
     TTree *gst = (TTree*) f.Get("gst");
@@ -227,7 +440,6 @@ void muon_kinematics_unfolding() {
     
     // Fill the smeared T and cos vectors 
     Smearing( T_mu_vect, cos_mu_vect, T_mu_prime, cos_mu_prime );
-    
     
     //==============================================================================
     // Define the histograms
@@ -382,11 +594,57 @@ void muon_kinematics_unfolding() {
     c->SaveAs( "working_dir/unfolded_distributions/true_unfolding_comp.png" );
 
     //==============================================================================
+    // Fill the ddxsec histogram and draw
+    //==============================================================================
+  
+    // Normalization variables
+    double cos_bins = hUnfold->GetXaxis()->GetBinWidth(1);
+    double Tmu_bins = hUnfold->GetYaxis()->GetBinWidth(1);
+    double flux_int = h_flux->Integral();
+    double Na       = 6.63e34;
+    double M_fid    = 1.016e8; // grams
+    double A_ar     = 39.948;
+    double tot_tgt  = ( Na * M_fid ) / ( A_ar ); // given in flux unit definition  
+    double barns    = 1e38;
+
+    double scalar_norm = ( barns ) / ( cos_bins * Tmu_bins * flux_int * tot_tgt );
+    
+    TH2D *h_ddxsec = new TH2D( *hUnfold );
+    h_ddxsec->Scale( scalar_norm );
+    h_ddxsec->Divide( h_eff );
+
+    h_ddxsec->SetStats(kFALSE);
+    h_ddxsec->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_ddxsec->GetYaxis()->SetTitle("T_{#mu}");
+    h_ddxsec->SetTitle("CC0#pi, d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");
+    h_ddxsec->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    //c->SetLogz();
+    c->SaveAs( "working_dir/unfolded_distributions/2D_unfolding_ddxsec.png" );
+
+    //==============================================================================
+    // Slices and comparisons
+    //==============================================================================
+
+    // Normalise the true and reco histogram
+    h_un_2->Scale( scalar_norm );
+    h_un_2->Divide( h_eff );
+
+    h_sm_2->Scale( scalar_norm );
+    h_sm_2->Divide( h_eff );
+
+    Slices( h_ddxsec, h_un_2, h_sm_2 );
+    
+    //==============================================================================
     // Delete pointers
     //==============================================================================
+    
     delete hUnfold;
 
     delete h_comp;
+
+    delete h_ddxsec;
 
     delete h_sm;
     delete h_sm_1;
