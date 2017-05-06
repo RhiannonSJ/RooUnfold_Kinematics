@@ -323,6 +323,7 @@ void muon_kinematics_unfolding() {
     TBranch *b_nfpi0 = gst->GetBranch("nfpi0");
     TBranch *b_nfpip = gst->GetBranch("nfpip");
     TBranch *b_nfpim = gst->GetBranch("nfpim");
+    TBranch *b_nfp   = gst->GetBranch("nfp");
     TBranch *b_cc    = gst->GetBranch("cc");
     TBranch *b_nc    = gst->GetBranch("nc");
     TBranch *b_nf    = gst->GetBranch("nf");
