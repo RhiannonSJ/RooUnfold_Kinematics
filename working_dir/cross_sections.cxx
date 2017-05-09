@@ -38,6 +38,42 @@ void cross_sections() {
         cout << "=========================== Default event file open ===========================" << endl;
     }
 
+    //==============================================================================
+    // Reading in the flux root file 
+    //==============================================================================
+    TFile fflux("/hepstore/rjones/Exercises/Fluxes/sbn_FHC_flux_hist.root");
+    if(fflux.IsZombie()){
+        std::cerr << " Error opening file " << endl;
+        exit(1);
+    }
+    else{
+        cout << "============================ SBND flux file open ==============================" << endl;
+    }
+
+    //==============================================================================
+    // Reading in the efficiency root file 
+    //==============================================================================
+    TFile feff("/hepstore/rjones/Exercises/RooUnfold_Kinematics/working_dir/efficiency.root");
+    if(feff.IsZombie()){
+        std::cerr << " Error opening file " << endl;
+        exit(1);
+    }
+    else{
+        cout << "========================== Efficiency flux file open ==========================" << endl;
+    }
+    
+    //==============================================================================
+    // Get the SBND flux histogram
+    //==============================================================================
+    
+    TH1D *h_flux = (TH1D*) fflux.Get("h_numu_110m");
+
+    //==============================================================================
+    // Get the efficiency flux histogram
+    //==============================================================================
+    
+    TH2D *h_eff = (TH2D*) feff.Get("h_eff");
+
     TTree *gst_train = (TTree*) f_train.Get("gst");
     TTree *gst_test  = (TTree*) f_test.Get("gst");
 
@@ -168,6 +204,32 @@ void cross_sections() {
     Slices( h_unfold_test, h_true_test, h_reco_test, "all_signal" );
 
     // CROSS-SECTIONS
+  
+    // Normalization variables
+    double cos_bins = h_unfold_test->GetXaxis()->GetBinWidth(1);
+    double Tmu_bins = h_unfold_test->GetYaxis()->GetBinWidth(1);
+    double flux_int = h_flux->Integral();
+    double Na       = 6.63e34;
+    double M_fid    = 1.016e8; // grams
+    double A_ar     = 39.948;
+    double tot_tgt  = ( Na * M_fid ) / ( A_ar ); // given in flux unit definition  
+    double barns    = 1e38;
+
+    double scalar_norm = ( barns ) / ( cos_bins * Tmu_bins * flux_int * tot_tgt );
+    
+    TH2D *h_ddxsec = new TH2D( *h_unfold_test );
+    h_ddxsec->Scale( scalar_norm );
+    h_ddxsec->Divide( h_eff );
+
+    h_ddxsec->SetStats(kFALSE);
+    h_ddxsec->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_ddxsec->GetYaxis()->SetTitle("T_{#mu}");
+    h_ddxsec->SetTitle("CC0#pi, d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");
+    h_ddxsec->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_unfolding_ddxsec.png" );
+
 }
 
 
