@@ -50,6 +50,7 @@ void cross_sections() {
         cout << "============================ SBND flux file open ==============================" << endl;
     }
 
+    /*
     //==============================================================================
     // Reading in the efficiency root file 
     //==============================================================================
@@ -63,16 +64,18 @@ void cross_sections() {
     }
     
     //==============================================================================
-    // Get the SBND flux histogram
-    //==============================================================================
-    
-    TH1D *h_flux = (TH1D*) fflux.Get("h_numu_110m");
-
-    //==============================================================================
     // Get the efficiency flux histogram
     //==============================================================================
     
     TH2D *h_eff = (TH2D*) feff.Get("h_eff");
+
+    */
+
+    //==============================================================================
+    // Get the SBND flux histogram
+    //==============================================================================
+    
+    TH1D *h_flux = (TH1D*) fflux.Get("h_numu_110m");
 
     TTree *gst_train = (TTree*) f_train.Get("gst");
     TTree *gst_test  = (TTree*) f_test.Get("gst");
@@ -87,7 +90,7 @@ void cross_sections() {
     std::vector<double> impur_T_train; 
     std::vector<double> impur_cos_train; 
 
-    GetTruth( gst_train, 3, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
+    GetTruth( gst_train, 2, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
 
     std::vector<double> truth_T_test; 
     std::vector<double> truth_cos_test; 
@@ -95,7 +98,7 @@ void cross_sections() {
     std::vector<double> impur_T_test; 
     std::vector<double> impur_cos_test; 
 
-    GetTruth( gst_test, 3,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    GetTruth( gst_test, 2,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
     
     //==============================================================================
     // Smearing 
@@ -135,6 +138,7 @@ void cross_sections() {
     TCanvas * c = new TCanvas();
 
     TH2D *h_true_test  = new TH2D( "h_true_test", " true ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_cut_test   = new TH2D( "h_cut_test",  " cut  ", 20, -1, 1, 18, 0, 2 );     
     TH2D *h_reco_test  = new TH2D( "h_reco_test", " reco ", 20, -1, 1, 18, 0, 2 );     
     
     for ( unsigned int i = 0; i < truth_T_test.size(); ++i ) {
@@ -142,6 +146,7 @@ void cross_sections() {
 
         if ( truth_detectable_test[i] ) {
             h_reco_test->Fill( smear_cos_test[i], smear_T_test[i]);
+            h_cut_test->Fill( smear_cos_test[i], smear_T_test[i]);
         }
     }
 
@@ -162,7 +167,17 @@ void cross_sections() {
     h_true_test->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_true.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_true.png" );
+    
+    // CUT
+    h_cut_test->SetStats(kFALSE);
+    h_cut_test->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_cut_test->GetYaxis()->SetTitle("T_{#mu}");
+    h_cut_test->SetTitle("#mu kinematics with cuts and smearing");
+    h_cut_test->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_cuts.png" );
     
     // RECO
     h_reco_test->SetStats(kFALSE);
@@ -172,7 +187,7 @@ void cross_sections() {
     h_reco_test->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_reco.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_reco.png" );
     
     // UNFOLDED
     h_unfold_test->SetStats(kFALSE);
@@ -182,7 +197,7 @@ void cross_sections() {
     h_unfold_test->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_unfolded.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_unfolded.png" );
    
     // COMPARISON
     TH2D *h_comp = new TH2D( *h_unfold_test );
@@ -197,11 +212,21 @@ void cross_sections() {
     h_comp->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/3_p/true_unfolding_comp.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/2_p/true_unfolding_comp.png" );
 
+    // EFFICIENCY
+    TH2D *h_eff = new TH2D( *h_cut_test );
+    h_eff->Divide( h_true_test );
 
-    // SLICING
-    Slices( h_unfold_test, h_true_test, h_reco_test, "3_p" );
+    h_eff->SetStats(kFALSE);
+    h_eff->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_eff->GetYaxis()->SetTitle("T_{#mu}");
+    h_eff->SetTitle("Efficiency");
+    h_eff->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    c->SaveAs( "working_dir/unfolded_distributions/2_p/efficiency.png" );
+
 
     // CROSS-SECTIONS
   
@@ -228,8 +253,29 @@ void cross_sections() {
     h_ddxsec->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_unfolding_ddxsec.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_unfolding_ddxsec.png" );
 
+    // SLICING
+    TH2D *h_true_ddxsec = new TH2D( *h_true_test );
+    h_true_ddxsec->Scale( scalar_norm );
+    h_true_ddxsec->Divide( h_eff );
+
+    TH2D *h_reco_ddxsec = new TH2D( *h_reco_test );
+    h_reco_ddxsec->Scale( scalar_norm );
+    h_reco_ddxsec->Divide( h_eff );
+
+    Slices( h_ddxsec, h_true_ddxsec, h_reco_ddxsec, "2_p" );
+
+    delete h_true_train;
+    delete h_reco_train;
+    delete h_true_test;
+    delete h_reco_test;
+    delete h_cut_test;
+    delete h_comp;
+    delete h_eff;
+    delete h_true_ddxsec;
+    delete h_reco_ddxsec; 
+    delete h_ddxsec;
 }
 
 
@@ -622,3 +668,4 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
     delete leg_c;
 
 }
+
