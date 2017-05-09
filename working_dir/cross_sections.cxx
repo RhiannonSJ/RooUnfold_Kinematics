@@ -84,13 +84,80 @@ void cross_sections() {
     //==============================================================================
 
     TH2D *h_true_train  = new TH2D( "h_true_train", " true ", 20, -1, 1, 18, 0, 2 );     
-    TH2D *h_reco_train  = new TH2D( "h_reco_train", " true ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_reco_train  = new TH2D( "h_reco_train", " reco ", 20, -1, 1, 18, 0, 2 );     
 
-    RooUnfoldResponse response( h_true_train, h_reco_train );
+    RooUnfoldResponse response( h_reco_train, h_true_train );
 
     GetResponse( truth_T_train, truth_cos_train, truth_detectable_train, smear_T_train, smear_cos_train, impur_smear_T_train, impur_smear_cos_train, response); 
             
+    //==============================================================================
+    // Test unfolding
+    //==============================================================================
+    
+    TH2D *h_true_test  = new TH2D( "h_true_test", " true ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_reco_test  = new TH2D( "h_reco_test", " reco ", 20, -1, 1, 18, 0, 2 );     
+    
+    for ( int i=0; i < truth_T_test.size(); ++i ) {
+        h_true_test->Fill( truth_cos_test[i], truth_T_test[i]);
 
+        if ( truth_detectable_test[i] ) {
+            h_reco_test->Fill( smear_cos_test[i], smear_T_test[i]);
+        }
+    }
+
+    for ( int i=0; i < impur_smear_T_test.size(); ++i ) {
+        h_reco_test->Fill( impur_smear_cos_test[i], impur_smear_T_test[i]);
+    }
+
+    RooUnfoldBayes unfold( &response, h_reco_test, 1 );
+    TH2D *h_unfold_test =  (TH2D*) unfold.Hreco();
+
+    gStyle->SetPalette(55);
+
+    // TRUE
+    h_true_test->SetStats(kFALSE);
+    h_true_test->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_true_test->GetYaxis()->SetTitle("T_{#mu}");
+    h_true_test->SetTitle("True #mu kinematics");
+    h_true_test->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_true.png" );
+    
+    // RECO
+    h_reco_test->SetStats(kFALSE);
+    h_reco_test->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_reco_test->GetYaxis()->SetTitle("T_{#mu}");
+    h_reco_test->SetTitle("Reco kinematics");
+    h_reco_test->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_reco.png" );
+    
+    // UNFOLDED
+    h_unfold_test->SetStats(kFALSE);
+    h_unfold_test->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_unfold_test->GetYaxis()->SetTitle("T_{#mu}");
+    h_unfold_test->SetTitle("Unfolded #mu kinematics");
+    h_unfold_test->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_unfolded.png" );
+   
+    // COMPARISON
+    TH2D *h_comp = new TH2D( *h_unfold_test );
+    h_comp->Add( h_true_test, -1 );
+    h_comp->Divide( h_true_test );
+    h_comp->Scale( 100 );
+
+    h_comp->SetStats(kFALSE);
+    h_comp->GetXaxis()->SetTitle("cos#theta_{#mu}");
+    h_comp->GetYaxis()->SetTitle("T_{#mu}");
+    h_comp->SetTitle("CC0#pi, bin content difference between true and unfolded");
+    h_comp->Draw("colz");
+    
+    c->SetRightMargin(0.13);
+    c->SaveAs( "working_dir/unfolded_distributions/all_signal/true_unfolding_comp.png" );
 }
 
 
