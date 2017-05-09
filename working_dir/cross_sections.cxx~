@@ -14,8 +14,6 @@ void Smear( const std::vector<double> & truth_T, const std::vector<double> & tru
 
 void GetResponse( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, const std::vector<bool> & truth_detectable, const std::vector<double> & smear_T, const std::vector<double> & smear_cos, const std::vector<double> & smear_impur_T, const std::vector<double> & smear_impur_cos, RooUnfoldResponse & response); 
 
-void Slices( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024] );
-
 void cross_sections() {
     //==============================================================================
     // Reading in the event root files 
@@ -162,12 +160,6 @@ void cross_sections() {
     
     c->SetRightMargin(0.13);
     c->SaveAs( "working_dir/unfolded_distributions/all_signal/true_unfolding_comp.png" );
-
-
-    // SLICING
-    Slices( h_unfold_test, h_true_test, h_reco_test, "all_signal" );
-
-    // CROSS-SECTIONS
 }
 
 
@@ -202,7 +194,7 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
     int n_entries = tree->GetEntries();
 
     // Fill the vectors
-    for ( int i = 0; i < n_entries; ++i ){
+    for ( unsigned int i = 0; i < n_entries; ++i ){
     
         tree->GetEntry(i);
     
@@ -222,7 +214,7 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
         int n_detectable_pr = 0;
 
         // Count how many protons are above 50MeV
-        for ( int j = 0; j < nf; ++j ) {
+        for ( unsigned int j = 0; j < nf; ++j ) {
  
             b_pdgf->GetEntry(i);
             b_cthf->GetEntry(i);
@@ -268,7 +260,7 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
             if ( nc == 1 && nfpip + nfpim == 1 && nfpi0 == 0 ){
  
                 // For all the final state hadronic particles, get their pdg code
-                for ( int j = 0; j < nf; ++j ) {
+                for ( unsigned int j = 0; j < nf; ++j ) {
  
                     b_pdgf->GetEntry(i);
                     b_cthf->GetEntry(i);
@@ -323,7 +315,7 @@ void Smear( const std::vector<double> & truth_T, const std::vector<double> & tru
     }
     // Event by event, generate Tmu_prime and Tpi_prime: lognormal
     // Then find thetamu_prime and thetapi_prime: gaussian
-    for ( int i = 0; i < n_values; ++i ){
+    for ( unsigned int i = 0; i < n_values; ++i ){
  
         // -------------------------------------------------------
         //                   Kinetic energy
@@ -372,192 +364,3 @@ void GetResponse( const std::vector<double> & truth_T, const std::vector<double>
         response.Fake( smear_impur_cos[i], smear_impur_T[i] );
     }
 } 
-
-void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024] ){
-
-    // Firstly, loop over all Tmu bins on draw slices in cos theta mu
-    // Take the bin edges to be the title
-    int x_bins = h_unfolded->GetNbinsX(); // Cos theta
-    int y_bins = h_unfolded->GetNbinsY(); // Tmu
-
-    TCanvas *c_Tmu   = new TCanvas ( "c_Tmu", "", 800, 600 );
-   
-    TLegend *leg_T   = new TLegend( 0.12, 0.78, 0.28, 0.88 );
-
-    TH1D *h_Tmu      = new TH1D ( "h_Tmu", "", x_bins, -1, 1 );
-    TH1D *h_Tmu_true = new TH1D ( "h_Tmu_true", "", x_bins, -1, 1 );
-    TH1D *h_Tmu_reco = new TH1D ( "h_Tmu_reco", "", x_bins, -1, 1 );
-    
-    leg_T->AddEntry( h_Tmu, " Unfolded ", "l" );
-    leg_T->AddEntry( h_Tmu_true, " True ", "l" );
-    leg_T->AddEntry( h_Tmu_reco, " Reco ", "l" );
-    
-    for ( int i = 1; i <= y_bins; ++i ){
-
-        // Define the histograms
-        // Get the lower and upper bin edges of the y axis
-        double low_edge_T;
-        double up_edge_T;
-
-        low_edge_T = h_unfolded->GetYaxis()->GetBinLowEdge(i);
-        up_edge_T = h_unfolded->GetYaxis()->GetBinLowEdge(i + 1);
-   
-        // Make the title for the current histogram and the file name
-        // Clear the title for the new loop
-        stringstream conv;
-        conv.clear();
-
-        string title;
-        title.clear();
-
-        char file_name[1024];
-
-        conv << setprecision(4) << "working_dir/unfolded_distributions/" << n_pr << "/Tmu_slice_" << low_edge_T << ";" << up_edge_T << ".png";
-        title = conv.str();
-        
-        strcpy( file_name, title.c_str() );
-
-        // For the title of the histogram
-        stringstream hist;
-        hist.clear();
-
-        char hist_name[1024];
-        string temp1;
-
-        hist << setprecision(4) << "T_{#mu} slice: " << low_edge_T << "_" << up_edge_T;
-        temp1 = hist.str();
-
-        strcpy( hist_name, temp1.c_str() );
-
-        // Fill the histogram
-        for ( int j = 1; j <= x_bins; ++j ){
-            h_Tmu->SetBinContent( j, h_unfolded->GetBinContent(j, i) );
-            h_Tmu_true->SetBinContent( j, h_true->GetBinContent(j, i) );
-            h_Tmu_reco->SetBinContent( j, h_reco->GetBinContent(j, i) );
-        }
-
-        double unfo_max = h_Tmu->GetBinContent(h_Tmu->GetMaximumBin());
-        double true_max = h_Tmu_true->GetBinContent(h_Tmu_true->GetMaximumBin());
-        double reco_max = h_Tmu_reco->GetBinContent(h_Tmu_reco->GetMaximumBin());
-
-        double max = 1.1 * TMath::Max(unfo_max, TMath::Max(true_max, reco_max)); 
-
-        h_Tmu->Draw();
-        h_Tmu_true->Draw("same");
-        h_Tmu_reco->Draw("same");
-        h_Tmu->SetTitle(hist_name);
-        h_Tmu->GetYaxis()->SetRangeUser(0,max);
-        h_Tmu->GetXaxis()->SetTitle("cos#theta_{#mu}");   
-        h_Tmu->GetYaxis()->SetTitle("d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");   
-        h_Tmu->SetLineColor( kRed + 2 );
-        h_Tmu_true->SetLineColor( kGreen + 2 );
-        h_Tmu_reco->SetLineColor( kBlue + 2 );
-        h_Tmu_reco->SetLineStyle( 7 );
-
-        h_Tmu->SetTitleOffset(1.1, "Y");
-        h_Tmu->SetStats(kFALSE);
-
-        leg_T->Draw();
-        c_Tmu->SaveAs(file_name);
-
-    } 
-   
-    delete h_Tmu;
-    delete h_Tmu_true;
-    delete h_Tmu_reco;
-
-    delete c_Tmu;
-    
-    delete leg_T;
-
-    TCanvas *c_cosmu   = new TCanvas ( "c_cosmu", "", 800, 600 );
-    
-    TLegend *leg_c     = new TLegend( 0.72, 0.78, 0.88, 0.88 );
-
-    TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0, 2 );
-    TH1D *h_cosmu_true = new TH1D ( "h_cosmu_true", "", y_bins, 0, 2 );
-    TH1D *h_cosmu_reco = new TH1D ( "h_cosmu_reco", "", y_bins, 0, 2 );
-     
-    leg_c->AddEntry( h_cosmu, " Unfolded ", "l" );
-    leg_c->AddEntry( h_cosmu_true, " True ", "l" );
-    leg_c->AddEntry( h_cosmu_reco, " Reco ", "l" );
-    
-    // Cos theta mu slices
-    for ( int i = 1; i <= x_bins; ++i ){
-
-        // Define the histograms
-        // Get the lower and upper bin edges of the y axis
-        double low_edge_cos;
-        double up_edge_cos;
-
-        low_edge_cos = h_unfolded->GetXaxis()->GetBinLowEdge(i);
-        up_edge_cos = h_unfolded->GetXaxis()->GetBinLowEdge(i + 1);
-   
-        // Make the title for the current histogram and the file name
-        // Clear the title for the new loop
-        stringstream conv1;
-        conv1.clear();
-
-        string title1;
-        title1.clear();
-
-        char file_name1[1024];
-
-        conv1 << setprecision(4) << "working_dir/unfolded_distributions/" << n_pr << "/cos_thetamu_slice_" << low_edge_cos << ";" << up_edge_cos << ".png";
-        title1 = conv1.str();
-        
-        strcpy( file_name1, title1.c_str() );
-
-        // For the title of the histogram
-        stringstream hist1;
-        hist1.clear();
-
-        char hist_name1[1024];
-        string temp2;
-
-        hist1 << setprecision(4) << "cos#theta_{#mu} slice: " << low_edge_cos << "," << up_edge_cos;
-        temp2 = hist1.str();
-
-        strcpy( hist_name1, temp2.c_str() );
-
-        // Fill the histogram
-        for ( int j = 1; j <= y_bins; ++j ){
-            h_cosmu->SetBinContent( j, h_unfolded->GetBinContent(i, j) );
-            h_cosmu_true->SetBinContent( j, h_true->GetBinContent(i, j) );
-            h_cosmu_reco->SetBinContent( j, h_reco->GetBinContent(i, j) );
-        }
-
-        double unfo_max_c = h_cosmu->GetBinContent(h_cosmu->GetMaximumBin());
-        double true_max_c = h_cosmu_true->GetBinContent(h_cosmu_true->GetMaximumBin());
-        double reco_max_c = h_cosmu_reco->GetBinContent(h_cosmu_reco->GetMaximumBin());
-
-        double max_c = 1.1 * TMath::Max(unfo_max_c, TMath::Max(true_max_c, reco_max_c)); 
-        
-        h_cosmu->Draw();
-        h_cosmu_true->Draw("same");
-        h_cosmu_reco->Draw("same");
-        h_cosmu->SetTitle(hist_name1);
-        h_cosmu->GetYaxis()->SetRangeUser(0,max_c);
-        h_cosmu->GetXaxis()->SetTitle("T_{#mu}");   
-        h_cosmu->GetYaxis()->SetTitle("d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");   
-        h_cosmu->SetLineColor( kRed + 2 );
-        h_cosmu_true->SetLineColor( kGreen + 2 );
-        h_cosmu_reco->SetLineColor( kBlue + 2 );
-        h_cosmu_reco->SetLineStyle( 7 );
-        h_cosmu->SetTitleOffset(1.1, "Y");
-        h_cosmu->SetStats(kFALSE);
-
-        leg_c->Draw();
-        c_cosmu->SaveAs(file_name1);
-
-    } 
-    
-    delete h_cosmu;
-    delete h_cosmu_true;
-    delete h_cosmu_reco;
-
-    delete c_cosmu;
-
-    delete leg_c;
-
-}
