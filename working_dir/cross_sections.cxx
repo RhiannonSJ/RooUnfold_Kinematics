@@ -87,7 +87,7 @@ void cross_sections() {
     std::vector<double> impur_T_train; 
     std::vector<double> impur_cos_train; 
 
-    GetTruth( gst_train, -1, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
+    GetTruth( gst_train, 3, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
 
     std::vector<double> truth_T_test; 
     std::vector<double> truth_cos_test; 
@@ -95,7 +95,7 @@ void cross_sections() {
     std::vector<double> impur_T_test; 
     std::vector<double> impur_cos_test; 
 
-    GetTruth( gst_test, -1,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    GetTruth( gst_test, 3,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
     
     //==============================================================================
     // Smearing 
@@ -162,7 +162,7 @@ void cross_sections() {
     h_true_test->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_true.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_true.png" );
     
     // RECO
     h_reco_test->SetStats(kFALSE);
@@ -172,7 +172,7 @@ void cross_sections() {
     h_reco_test->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_reco.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_reco.png" );
     
     // UNFOLDED
     h_unfold_test->SetStats(kFALSE);
@@ -182,7 +182,7 @@ void cross_sections() {
     h_unfold_test->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_unfolded.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_unfolded.png" );
    
     // COMPARISON
     TH2D *h_comp = new TH2D( *h_unfold_test );
@@ -197,11 +197,11 @@ void cross_sections() {
     h_comp->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/all_signal/true_unfolding_comp.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/3_p/true_unfolding_comp.png" );
 
 
     // SLICING
-    Slices( h_unfold_test, h_true_test, h_reco_test, "all_signal" );
+    Slices( h_unfold_test, h_true_test, h_reco_test, "3_p" );
 
     // CROSS-SECTIONS
   
@@ -228,7 +228,7 @@ void cross_sections() {
     h_ddxsec->Draw("colz");
     
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/all_signal/2D_unfolding_ddxsec.png" );
+    c->SaveAs( "working_dir/unfolded_distributions/3_p/2D_unfolding_ddxsec.png" );
 
 }
 
@@ -287,7 +287,6 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
         for ( int j = 0; j < nf; ++j ) {
  
             b_pdgf->GetEntry(i);
-            b_cthf->GetEntry(i);
             b_Ef->GetEntry(i);
  
             int pdgf      = b_pdgf->GetLeaf("pdgf")->GetValue(j);
