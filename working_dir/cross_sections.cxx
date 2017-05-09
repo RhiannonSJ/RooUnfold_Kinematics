@@ -12,7 +12,7 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
 
 void Smear( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, std::vector<double> & smear_T, std::vector<double> & smear_cos ); 
 
-
+void GetResponse( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, const std::vector<bool> & truth_detectable, const std::vector<double> & smear_T, const std::vector<double> & smear_cos, const std::vector<double> & smear_impur_T, const std::vector<double> & smear_impur_cos, RooUnfoldResponse & response); 
 
 void cross_sections() {
     //==============================================================================
@@ -83,6 +83,13 @@ void cross_sections() {
     // Train response matrix
     //==============================================================================
 
+    TH2D *h_true_train  = new TH2D( "h_true_train", " true ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_reco_train  = new TH2D( "h_reco_train", " true ", 20, -1, 1, 18, 0, 2 );     
+
+    RooUnfoldResponse response( h_true_train, h_reco_train );
+
+    GetResponse( truth_T_train, truth_cos_train, truth_detectable_train, smear_T_train, smear_cos_train, impur_smear_T_train, impur_smear_cos_train, response); 
+            
 
 }
 
@@ -265,3 +272,19 @@ void Smear( const std::vector<double> & truth_T, const std::vector<double> & tru
 
     }
 }
+
+void GetResponse( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, const std::vector<bool> & truth_detectable, const std::vector<double> & smear_T, const std::vector<double> & smear_cos, const std::vector<double> & smear_impur_T, const std::vector<double> & smear_impur_cos, RooUnfoldResponse & response) {
+
+    for ( int i=0; i < truth_T.size(); ++i ) {
+        if ( truth_detectable[i] ) {
+            response.Fill( smear_cos[i], smear_T[i], truth_cos[i], truth_T[i] ); 
+        }
+        else{
+            response.Miss( truth_cos[i], truth_T[i] );
+        }
+    }
+
+    for ( int i=0; i < smear_impur_T.size(); ++i ) {
+        response.Fake( smear_impur_cos[i], smear_impur_T[i] );
+    }
+} 
