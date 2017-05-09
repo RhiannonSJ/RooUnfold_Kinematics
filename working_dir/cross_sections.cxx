@@ -8,9 +8,11 @@ using std::endl;
 #include "../src/RooUnfoldBayes.h"
 
 
-void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & imput_cos );
+void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos );
 
-// void Smear( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, std::vector<double> & smear_T, std::vector<double> & smear_cos ); 
+void Smear( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, std::vector<double> & smear_T, std::vector<double> & smear_cos ); 
+
+
 
 void cross_sections() {
     //==============================================================================
@@ -47,7 +49,7 @@ void cross_sections() {
     std::vector<double> impur_T_train; 
     std::vector<double> impur_cos_train; 
 
-    GetTruth( gst_train, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
+    GetTruth( gst_train, -1, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
 
     std::vector<double> truth_T_test; 
     std::vector<double> truth_cos_test; 
@@ -55,12 +57,37 @@ void cross_sections() {
     std::vector<double> impur_T_test; 
     std::vector<double> impur_cos_test; 
 
-    GetTruth( gst_test, truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    GetTruth( gst_test, -1,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    
+    //==============================================================================
+    // Smearing 
+    //==============================================================================
+    
+    std::vector<double> smear_T_train; 
+    std::vector<double> smear_cos_train; 
+    std::vector<double> impur_smear_T_train; 
+    std::vector<double> impur_smear_cos_train; 
+    
+    Smear( truth_T_train, truth_cos_train, smear_T_train, smear_cos_train );
+    Smear( impur_T_train, impur_cos_train, impur_smear_T_train, impur_smear_cos_train );
+    
+    std::vector<double> smear_T_test; 
+    std::vector<double> smear_cos_test; 
+    std::vector<double> impur_smear_T_test; 
+    std::vector<double> impur_smear_cos_test; 
+    
+    Smear( truth_T_test, truth_cos_test, smear_T_test, smear_cos_test );
+    Smear( impur_T_test, impur_cos_test, impur_smear_T_test, impur_smear_cos_test );
+    
+    //==============================================================================
+    // Train response matrix
+    //==============================================================================
+
 
 }
 
 
-void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & imput_cos ) {
+void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos ) {
 
     TBranch *b_Ef    = tree->GetBranch("Ef");
     TBranch *b_El    = tree->GetBranch("El");
@@ -136,7 +163,7 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
                 if ( fspl == 13 ){
  
                     // Energy of the final state primary lepton
-                    T_mu = e_mu - m_mu;
+                    double T_mu = e_mu - m_mu;
  
                     bool isDetectable = false;
                     if ( n_protons == -1 ) {
@@ -187,5 +214,54 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
                 }
             }
         }
+    }
+}
+
+void Smear( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, std::vector<double> & smear_T, std::vector<double> & smear_cos ) {
+
+    // Initiate the random number generation
+    ROOT::Math::GSLRngMT *_random_gen = new ROOT::Math::GSLRngMT;
+    _random_gen->Initialize();
+    _random_gen->SetSeed( time( NULL ) );
+ 
+    int n_values = truth_T.size();
+
+    if ( truth_T.size() != truth_cos.size() ){
+        std::cerr << " Vectors must be the same length " << endl;
+        exit(1);
+    }
+    // Event by event, generate Tmu_prime and Tpi_prime: lognormal
+    // Then find thetamu_prime and thetapi_prime: gaussian
+    for ( int i = 0; i < n_values; ++i ){
+ 
+        // -------------------------------------------------------
+        //                   Kinetic energy
+        // -------------------------------------------------------
+        // Calculate the mean and sigma for the LogNormal function
+        //     zeta  = TMath::Log( m * ( 1 / sqrt( 1 + ( var / pow( m, 2 ) ) ) ) );
+        //     sigma = sqrt( log( 1 + ( var / pow( m, 2 ) ) ) );
+        //     m     = expectation value = Tl
+        //     var   = variance = s.d.^2 = ( Tl * 0.1 ) ^ 2
+ 
+        double var_mu     = TMath::Power( truth_T[i] * 0.1, 2 );
+        double sigma_mu   = TMath::Sqrt( TMath::Log( 1 + ( var_mu / TMath::Power(truth_T[i], 2 ) ) ) );
+        double zeta_mu    = TMath::Log( truth_T[i] * ( 1 / TMath::Sqrt( 1 + ( var_mu / TMath::Power( truth_T[i], 2 ) ) ) ) );
+        double lognorm_mu = _random_gen->LogNormal( zeta_mu, sigma_mu );
+     
+        // -------------------------------------------------------
+        //                  Cos theta
+        // -------------------------------------------------------
+     
+        // Calculate the mean and sigma for the LogNormal function
+        //      theta = acos(costtheta)
+        //      var   = 5 degrees
+     
+        double sd_thetamu    = TMath::Pi() / 36; // 5 degrees
+        double gaus_theta    = TMath::ACos( truth_cos[i] ) + _random_gen->Gaussian( sd_thetamu );
+        double gaus_costheta = TMath::Cos( gaus_theta );
+     
+        smear_T.push_back(lognorm_mu);
+        smear_cos.push_back(gaus_costheta);
+
     }
 }
