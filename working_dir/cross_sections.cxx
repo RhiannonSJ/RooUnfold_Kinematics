@@ -34,6 +34,9 @@ void cross_sections() {
         cout << "=========================== Default event file open ===========================" << endl;
     }
 
+    TTree *gst_train = (TTree*) f_train.Get("gst");
+    TTree *gst_test  = (TTree*) f_test.Get("gst");
+
     
     //==============================================================================
     // Get the truth vectors 
@@ -44,7 +47,7 @@ void cross_sections() {
     std::vector<double> impur_T_train; 
     std::vector<double> impur_cos_train; 
 
-    GetTruth( truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
+    GetTruth( gst_train, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
 
     std::vector<double> truth_T_test; 
     std::vector<double> truth_cos_test; 
@@ -52,6 +55,137 @@ void cross_sections() {
     std::vector<double> impur_T_test; 
     std::vector<double> impur_cos_test; 
 
-    GetTruth( truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    GetTruth( gst_test, truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
 
+}
+
+
+void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & imput_cos ) {
+
+    TBranch *b_Ef    = tree->GetBranch("Ef");
+    TBranch *b_El    = tree->GetBranch("El");
+    TBranch *b_pl    = tree->GetBranch("pl");
+    TBranch *b_cthl  = tree->GetBranch("cthl");
+    TBranch *b_cthf  = tree->GetBranch("cthf");
+    TBranch *b_nfpi0 = tree->GetBranch("nfpi0");
+    TBranch *b_nfpip = tree->GetBranch("nfpip");
+    TBranch *b_nfpim = tree->GetBranch("nfpim");
+    TBranch *b_nfp   = tree->GetBranch("nfp");
+    TBranch *b_cc    = tree->GetBranch("cc");
+    TBranch *b_nc    = tree->GetBranch("nc");
+    TBranch *b_nf    = tree->GetBranch("nf");
+    TBranch *b_fspl  = tree->GetBranch("fspl");
+    TBranch *b_pdgf  = tree->GetBranch("pdgf");
+
+    // Variables 
+    double m_mu = 0.10566; // Muon mass, GeV
+    double m_pi = 0.13957; // Charged pion mass, GeV
+    double m_pr = 0.93827; // Proton mass, GeV
+   
+    double T_thresh_mu = 0.05;
+    double T_thresh_pi = 0.05;
+    double T_thresh_pr = 0.05;
+
+    int n_entries = tree->GetEntries();
+
+    // Fill the vectors
+    for ( int i = 0; i < n_entries; ++i ){
+    
+        tree->GetEntry(i);
+    
+        int nf    = b_nf->GetLeaf("nf")->GetValue();
+        int fspl  = b_fspl->GetLeaf("fspl")->GetValue();
+        int pdgf  = b_pdgf->GetLeaf("pdgf")->GetValue();
+        int nfpi0 = b_nfpi0->GetLeaf("nfpi0")->GetValue();
+        int nfpip = b_nfpip->GetLeaf("nfpip")->GetValue();
+        int nfpim = b_nfpim->GetLeaf("nfpim")->GetValue();
+        int nfp   = b_nfp->GetLeaf("nfp")->GetValue();
+        int cc    = b_cc->GetLeaf("cc")->GetValue();
+        int nc    = b_nc->GetLeaf("nc")->GetValue();
+
+        double e_mu   = b_El->GetLeaf("El")->GetValue();
+        double cos_mu = b_cthl->GetLeaf("cthl")->GetValue();
+        
+        int n_detectable_pr = 0;
+
+        // Count how many protons are above 50MeV
+        for ( int j = 0; j < nf; ++j ) {
+ 
+            b_pdgf->GetEntry(i);
+            b_cthf->GetEntry(i);
+            b_Ef->GetEntry(i);
+ 
+            int pdgf      = b_pdgf->GetLeaf("pdgf")->GetValue(j);
+            double e_pr   = b_Ef->GetLeaf("Ef")->GetValue(j);
+ 
+ 
+            // Calculate the kinetic energy of the pions
+            if (pdgf == 2212 ){
+ 
+                double T_pr = e_pr - m_pr;
+                if( T_pr > T_thresh_pr ){
+                    n_detectable_pr++;
+                }
+            }
+        }
+
+        if ( ( n_protons != -1 && nfp == n_protons ) || ( n_protons == -1 ) ){
+            // If there are no pions fill the kinetic energy and cos theta with the muon energy   
+            if ( cc == 1 && nfpip + nfpim + nfpi0 == 0 ){
+                // Calculate the kinetic energy for muons
+                if ( fspl == 13 ){
+ 
+                    // Energy of the final state primary lepton
+                    T_mu = e_mu - m_mu;
+ 
+                    bool isDetectable = false;
+                    if ( n_protons == -1 ) {
+                        isDetectable = (T_mu > T_thresh_mu);
+                    }
+                    else{
+                        isDetectable = (T_mu > T_thresh_mu && n_protons == n_detectable_pr);
+                    }
+
+                    truth_T.push_back(T_mu);
+                    truth_cos.push_back(cos_mu);
+                    truth_detectable.push_back( isDetectable );
+                }
+            }
+
+            if ( nc == 1 && nfpip + nfpim == 1 && nfpi0 == 0 ){
+ 
+                // For all the final state hadronic particles, get their pdg code
+                for ( int j = 0; j < nf; ++j ) {
+ 
+                    b_pdgf->GetEntry(i);
+                    b_cthf->GetEntry(i);
+                    b_Ef->GetEntry(i);
+ 
+                    int pdgf      = b_pdgf->GetLeaf("pdgf")->GetValue(j);
+                    double e_pi   = b_Ef->GetLeaf("Ef")->GetValue(j);
+                    double cos_pi = b_cthf->GetLeaf("cthf")->GetValue(j);
+ 
+ 
+                    // Calculate the kinetic energy of the pions
+                    if (pdgf == 211 || pdgf == -211 ){
+ 
+                        double T_pi = e_pi - m_pi;
+ 
+                        bool isDetectable = false;
+                        if ( n_protons == -1 ) {
+                            isDetectable = (T_pi > T_thresh_pi);
+                        }
+                        else{
+                            isDetectable = (T_pi > T_thresh_pi && n_protons == n_detectable_pr);
+                        }
+
+                        if ( isDetectable ) {
+                            impur_T.push_back(T_pi);
+                            impur_cos.push_back(cos_pi);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
