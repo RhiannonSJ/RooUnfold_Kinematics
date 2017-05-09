@@ -16,7 +16,7 @@ void GetResponse( const std::vector<double> & truth_T, const std::vector<double>
 
 void Slices( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024] );
 
-void cross_sections() {
+void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     //==============================================================================
     // Reading in the event root files 
     //==============================================================================
@@ -50,27 +50,6 @@ void cross_sections() {
         cout << "============================ SBND flux file open ==============================" << endl;
     }
 
-    /*
-    //==============================================================================
-    // Reading in the efficiency root file 
-    //==============================================================================
-    TFile feff("/hepstore/rjones/Exercises/RooUnfold_Kinematics/working_dir/efficiency.root");
-    if(feff.IsZombie()){
-        std::cerr << " Error opening file " << endl;
-        exit(1);
-    }
-    else{
-        cout << "========================== Efficiency flux file open ==========================" << endl;
-    }
-    
-    //==============================================================================
-    // Get the efficiency flux histogram
-    //==============================================================================
-    
-    TH2D *h_eff = (TH2D*) feff.Get("h_eff");
-
-    */
-
     //==============================================================================
     // Get the SBND flux histogram
     //==============================================================================
@@ -90,7 +69,7 @@ void cross_sections() {
     std::vector<double> impur_T_train; 
     std::vector<double> impur_cos_train; 
 
-    GetTruth( gst_train, 2, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
+    GetTruth( gst_train, n_protons, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
 
     std::vector<double> truth_T_test; 
     std::vector<double> truth_cos_test; 
@@ -98,7 +77,7 @@ void cross_sections() {
     std::vector<double> impur_T_test; 
     std::vector<double> impur_cos_test; 
 
-    GetTruth( gst_test, 2,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    GetTruth( gst_test, n_protons,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
     
     //==============================================================================
     // Smearing 
@@ -166,9 +145,23 @@ void cross_sections() {
     h_true_test->SetTitle("True #mu kinematics");
     h_true_test->Draw("colz");
     
-    c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_true.png" );
+    char true_path[1024];
     
+    stringstream temp_tr;
+    temp_tr.clear();
+
+    string image_tr;
+    image_tr.clear();
+
+    temp_tr << "working_dir/unfolded_distributions/" << pr_path << "/2D_true.png";
+    
+    image_tr = temp_tr.str();    
+
+    strcpy( true_path, image_tr.c_str() );
+
+    c->SetRightMargin(0.13);
+    c->SaveAs( true_path );
+
     // CUT
     h_cut_test->SetStats(kFALSE);
     h_cut_test->GetXaxis()->SetTitle("cos#theta_{#mu}");
@@ -176,8 +169,22 @@ void cross_sections() {
     h_cut_test->SetTitle("#mu kinematics with cuts and smearing");
     h_cut_test->Draw("colz");
     
+    char cut_path[1024];
+    
+    stringstream temp_ct;
+    temp_ct.clear();
+
+    string image_ct;
+    image_ct.clear();
+
+    temp_ct << "working_dir/unfolded_distributions/" << pr_path << "/2D_cut.png";
+    
+    image_ct = temp_ct.str();    
+
+    strcpy( cut_path, image_ct.c_str() );
+
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_cuts.png" );
+    c->SaveAs( cut_path );
     
     // RECO
     h_reco_test->SetStats(kFALSE);
@@ -186,8 +193,22 @@ void cross_sections() {
     h_reco_test->SetTitle("Reco kinematics");
     h_reco_test->Draw("colz");
     
+    char reco_path[1024];
+    
+    stringstream temp_re;
+    temp_re.clear();
+
+    string image_re;
+    image_re.clear();
+
+    temp_re << "working_dir/unfolded_distributions/" << pr_path << "/2D_reco.png";
+    
+    image_re = temp_re.str();    
+
+    strcpy( reco_path, image_re.c_str() );
+
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_reco.png" );
+    c->SaveAs( reco_path );
     
     // UNFOLDED
     h_unfold_test->SetStats(kFALSE);
@@ -196,9 +217,23 @@ void cross_sections() {
     h_unfold_test->SetTitle("Unfolded #mu kinematics");
     h_unfold_test->Draw("colz");
     
+    char unfold_path[1024];
+    
+    stringstream temp_unf;
+    temp_unf.clear();
+
+    string image_unf;
+    image_unf.clear();
+
+    temp_unf << "working_dir/unfolded_distributions/" << pr_path << "/2D_unfolded.png";
+    
+    image_unf = temp_unf.str();    
+
+    strcpy( unfold_path, image_unf.c_str() );
+
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_unfolded.png" );
-   
+    c->SaveAs( unfold_path );
+    
     // COMPARISON
     TH2D *h_comp = new TH2D( *h_unfold_test );
     h_comp->Add( h_true_test, -1 );
@@ -211,8 +246,22 @@ void cross_sections() {
     h_comp->SetTitle("CC0#pi, bin content difference between true and unfolded");
     h_comp->Draw("colz");
     
+    char comp_path[1024];
+    
+    stringstream temp_cmp;
+    temp_cmp.clear();
+
+    string image_cmp;
+    image_cmp.clear();
+
+    temp_cmp << "working_dir/unfolded_distributions/" << pr_path << "/true_unfold_comp.png";
+    
+    image_cmp = temp_cmp.str();    
+
+    strcpy( comp_path, image_cmp.c_str() );
+
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/2_p/true_unfolding_comp.png" );
+    c->SaveAs( comp_path );
 
     // EFFICIENCY
     TH2D *h_eff = new TH2D( *h_cut_test );
@@ -224,10 +273,23 @@ void cross_sections() {
     h_eff->SetTitle("Efficiency");
     h_eff->Draw("colz");
     
+    char eff_path[1024];
+    
+    stringstream temp_eff;
+    temp_eff.clear();
+
+    string image_eff;
+    image_eff.clear();
+
+    temp_eff << "working_dir/unfolded_distributions/" << pr_path << "/efficiency.png";
+    
+    image_eff = temp_eff.str();    
+
+    strcpy( eff_path, image_eff.c_str() );
+
     c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/2_p/efficiency.png" );
-
-
+    c->SaveAs( eff_path );
+    
     // CROSS-SECTIONS
   
     // Normalization variables
@@ -252,9 +314,23 @@ void cross_sections() {
     h_ddxsec->SetTitle("CC0#pi, d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");
     h_ddxsec->Draw("colz");
     
-    c->SetRightMargin(0.13);
-    c->SaveAs( "working_dir/unfolded_distributions/2_p/2D_unfolding_ddxsec.png" );
+    char ddxsec_path[1024];
+    
+    stringstream temp_ddx;
+    temp_ddx.clear();
 
+    string image_ddx;
+    image_ddx.clear();
+
+    temp_ddx << "working_dir/unfolded_distributions/" << pr_path << "/2D_unfolding_ddxsec.png";
+    
+    image_ddx = temp_ddx.str();    
+
+    strcpy( ddxsec_path, image_ddx.c_str() );
+
+    c->SetRightMargin(0.13);
+    c->SaveAs( ddxsec_path );
+    
     // SLICING
     TH2D *h_true_ddxsec = new TH2D( *h_true_test );
     h_true_ddxsec->Scale( scalar_norm );
@@ -264,7 +340,7 @@ void cross_sections() {
     h_reco_ddxsec->Scale( scalar_norm );
     h_reco_ddxsec->Divide( h_eff );
 
-    Slices( h_ddxsec, h_true_ddxsec, h_reco_ddxsec, "2_p" );
+    Slices( h_ddxsec, h_true_ddxsec, h_reco_ddxsec, pr_path );
 
     delete h_true_train;
     delete h_reco_train;
