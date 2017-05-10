@@ -59,7 +59,36 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     TTree *gst_train = (TTree*) f_train.Get("gst");
     TTree *gst_test  = (TTree*) f_test.Get("gst");
 
+    //==============================================================================
+    // Open file to record statistics
+    //==============================================================================
     
+    char stats_path[1024];
+    
+    stringstream temp_stats;
+    temp_stats.clear();
+
+    string stats;
+    stats.clear();
+
+    temp_stats << "working_dir/unfolded_distributions/" << pr_path << "/stats.txt";
+    
+    stats = temp_stats.str();    
+
+    strcpy( stats_path, stats.c_str() );
+
+    ofstream s_file;
+    s_file.open(stats_path); 
+
+    if ( n_protons != -1 ){
+        s_file << " File to record the statistics for signal with " << n_protons << " protons " << endl; 
+        s_file << " ======================================================= " << endl; 
+    }
+    else{
+        s_file << " File to record the statistics for signal with all protons " << endl; 
+        s_file << " ========================================================= " << endl; 
+    }
+
     //==============================================================================
     // Get the truth vectors 
     //==============================================================================
@@ -137,6 +166,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     TH2D *h_unfold_test =  (TH2D*) unfold.Hreco();
 
     gStyle->SetPalette(55);
+    gStyle->SetNumberContours(250);
 
     // TRUE
     h_true_test->SetStats(kFALSE);
@@ -144,7 +174,12 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     h_true_test->GetYaxis()->SetTitle("T_{#mu}");
     h_true_test->SetTitle("True #mu kinematics");
     h_true_test->Draw("colz");
-    
+   
+    // Get the integral to see statistics 
+    double true_int = h_true_test->Integral();
+
+    s_file << " True : " << true_int << endl;
+
     char true_path[1024];
     
     stringstream temp_tr;
@@ -153,7 +188,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_tr;
     image_tr.clear();
 
-    temp_tr << "working_dir/unfolded_distributions/" << pr_path << "/2D_true.png";
+    temp_tr << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_true.png";
     
     image_tr = temp_tr.str();    
 
@@ -169,6 +204,11 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     h_cut_test->SetTitle("#mu kinematics with cuts and smearing");
     h_cut_test->Draw("colz");
     
+    // Get the integral to see statistics 
+    double cut_int = h_cut_test->Integral();
+
+    s_file << " Cut  : " << cut_int << endl;
+
     char cut_path[1024];
     
     stringstream temp_ct;
@@ -177,7 +217,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_ct;
     image_ct.clear();
 
-    temp_ct << "working_dir/unfolded_distributions/" << pr_path << "/2D_cut.png";
+    temp_ct << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_cut.png";
     
     image_ct = temp_ct.str();    
 
@@ -193,6 +233,11 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     h_reco_test->SetTitle("Reco kinematics");
     h_reco_test->Draw("colz");
     
+    // Get the integral to see statistics 
+    double reco_int = h_reco_test->Integral();
+
+    s_file << " Reco : " << reco_int << endl;
+
     char reco_path[1024];
     
     stringstream temp_re;
@@ -201,7 +246,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_re;
     image_re.clear();
 
-    temp_re << "working_dir/unfolded_distributions/" << pr_path << "/2D_reco.png";
+    temp_re << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_reco.png";
     
     image_re = temp_re.str();    
 
@@ -217,6 +262,11 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     h_unfold_test->SetTitle("Unfolded #mu kinematics");
     h_unfold_test->Draw("colz");
     
+    // Get the integral to see statistics 
+    double unfold_int = h_unfold_test->Integral();
+
+    s_file << " Unf  : " << unfold_int << endl;
+
     char unfold_path[1024];
     
     stringstream temp_unf;
@@ -225,7 +275,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_unf;
     image_unf.clear();
 
-    temp_unf << "working_dir/unfolded_distributions/" << pr_path << "/2D_unfolded.png";
+    temp_unf << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_unfolded.png";
     
     image_unf = temp_unf.str();    
 
@@ -254,7 +304,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_cmp;
     image_cmp.clear();
 
-    temp_cmp << "working_dir/unfolded_distributions/" << pr_path << "/true_unfold_comp.png";
+    temp_cmp << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_true_unfold_comp.png";
     
     image_cmp = temp_cmp.str();    
 
@@ -281,7 +331,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_eff;
     image_eff.clear();
 
-    temp_eff << "working_dir/unfolded_distributions/" << pr_path << "/efficiency.png";
+    temp_eff << "working_dir/unfolded_distributions/" << pr_path <<  "/" << pr_path <<"_efficiency.png";
     
     image_eff = temp_eff.str();    
 
@@ -306,7 +356,6 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     
     TH2D *h_ddxsec = new TH2D( *h_unfold_test );
     h_ddxsec->Scale( scalar_norm );
-    h_ddxsec->Divide( h_eff );
 
     h_ddxsec->SetStats(kFALSE);
     h_ddxsec->GetXaxis()->SetTitle("cos#theta_{#mu}");
@@ -322,7 +371,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_ddx;
     image_ddx.clear();
 
-    temp_ddx << "working_dir/unfolded_distributions/" << pr_path << "/2D_unfolding_ddxsec.png";
+    temp_ddx << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_unfolding_ddxsec.png";
     
     image_ddx = temp_ddx.str();    
 
@@ -330,17 +379,20 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
 
     c->SetRightMargin(0.13);
     c->SaveAs( ddxsec_path );
-    
+   
+    // WRITE TO FILE
+    TFile file("working_dir/selection_ddxsec.root", "UPDATE");
+    h_ddxsec->Write(pr_path);
+    file.Close();
+
     // SLICING
     TH2D *h_true_ddxsec = new TH2D( *h_true_test );
     h_true_ddxsec->Scale( scalar_norm );
-    h_true_ddxsec->Divide( h_eff );
 
     TH2D *h_reco_ddxsec = new TH2D( *h_reco_test );
     h_reco_ddxsec->Scale( scalar_norm );
-    h_reco_ddxsec->Divide( h_eff );
 
-    Slices( h_ddxsec, h_true_ddxsec, h_reco_ddxsec, pr_path );
+    Slices( h_unfold_test, h_true_test, h_reco_test, pr_path );
 
     delete h_true_train;
     delete h_reco_train;
@@ -488,6 +540,23 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
                 }
             }
         }
+    /*
+        else if ( ( n_protons != -1 && nfp != n_protons ) ){
+            // If there are no pions fill the kinetic energy and cos theta with the muon energy   
+            if ( cc == 1 && nfpip + nfpim + nfpi0 == 0 ){
+                // Calculate the kinetic energy for muons
+                if ( fspl == 13 ){
+ 
+                    // Energy of the final state primary lepton
+                    double T_mu = e_mu - m_mu;
+ 
+                    if ( T_mu > T_thresh_mu && nfp == n_detectable_pr ) {
+                        impur_T.push_back(T_mu);
+                        impur_cos.push_back(cos_mu);
+                    }
+                }
+            }
+        }*/
     }
 }
 
@@ -631,13 +700,13 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
         h_Tmu->SetTitle(hist_name);
         h_Tmu->GetYaxis()->SetRangeUser(0,max);
         h_Tmu->GetXaxis()->SetTitle("cos#theta_{#mu}");   
-        h_Tmu->GetYaxis()->SetTitle("d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");   
+        h_Tmu->GetYaxis()->SetTitle("Event rate");   
         h_Tmu->SetLineColor( kRed + 2 );
         h_Tmu_true->SetLineColor( kGreen + 2 );
         h_Tmu_reco->SetLineColor( kBlue + 2 );
         h_Tmu_reco->SetLineStyle( 7 );
 
-        h_Tmu->SetTitleOffset(1.1, "Y");
+        h_Tmu->SetTitleOffset(1.4, "Y");
         h_Tmu->SetStats(kFALSE);
 
         leg_T->Draw();
@@ -722,12 +791,12 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
         h_cosmu->SetTitle(hist_name1);
         h_cosmu->GetYaxis()->SetRangeUser(0,max_c);
         h_cosmu->GetXaxis()->SetTitle("T_{#mu}");   
-        h_cosmu->GetYaxis()->SetTitle("d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");   
+        h_cosmu->GetYaxis()->SetTitle("Event rate");   
         h_cosmu->SetLineColor( kRed + 2 );
         h_cosmu_true->SetLineColor( kGreen + 2 );
         h_cosmu_reco->SetLineColor( kBlue + 2 );
         h_cosmu_reco->SetLineStyle( 7 );
-        h_cosmu->SetTitleOffset(1.1, "Y");
+        h_cosmu->SetTitleOffset(1.4, "Y");
         h_cosmu->SetStats(kFALSE);
 
         leg_c->Draw();
