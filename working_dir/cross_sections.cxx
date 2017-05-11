@@ -8,7 +8,7 @@ using std::endl;
 #include "../src/RooUnfoldBayes.h"
 
 
-void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos );
+void GetTruth( TTree *tree, int n_min_bins, int n_max_bins,  int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos );
 
 void Smear( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, std::vector<double> & smear_T, std::vector<double> & smear_cos ); 
 
@@ -92,13 +92,17 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     //==============================================================================
     // Get the truth vectors 
     //==============================================================================
+
+    int n_half = gst_test->GetEntries() / 2;
+    int n_full = gst_test->GetEntries();
+    
     std::vector<double> truth_T_train; 
     std::vector<double> truth_cos_train; 
     std::vector<bool>   truth_detectable_train;
     std::vector<double> impur_T_train; 
     std::vector<double> impur_cos_train; 
 
-    GetTruth( gst_train, n_protons, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
+    GetTruth( gst_test, 0, n_half, n_protons, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
 
     std::vector<double> truth_T_test; 
     std::vector<double> truth_cos_test; 
@@ -106,7 +110,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     std::vector<double> impur_T_test; 
     std::vector<double> impur_cos_test; 
 
-    GetTruth( gst_test, n_protons,  truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    GetTruth( gst_test, n_half, n_full, n_protons, truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
     
     //==============================================================================
     // Smearing 
@@ -262,6 +266,11 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     h_unfold_test->SetTitle("Unfolded #mu kinematics");
     h_unfold_test->Draw("colz");
     
+    // WRITE TO FILE
+    TFile file("working_dir/selection_ddxsec.root", "UPDATE"); 
+    h_unfold_test->Write(pr_path);
+    file.Close();
+
     // Get the integral to see statistics 
     double unfold_int = h_unfold_test->Integral();
 
@@ -380,11 +389,6 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     c->SetRightMargin(0.13);
     c->SaveAs( ddxsec_path );
    
-    // WRITE TO FILE
-    TFile file("working_dir/selection_ddxsec.root", "UPDATE");
-    h_ddxsec->Write(pr_path);
-    file.Close();
-
     // SLICING
     TH2D *h_true_ddxsec = new TH2D( *h_true_test );
     h_true_ddxsec->Scale( scalar_norm );
@@ -407,7 +411,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
 }
 
 
-void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos ) {
+void GetTruth( TTree *tree, int n_min_bins, int n_max_bins, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos ) {
 
     TBranch *b_Ef    = tree->GetBranch("Ef");
     TBranch *b_El    = tree->GetBranch("El");
@@ -438,7 +442,7 @@ void GetTruth( TTree *tree, int n_protons, std::vector<double> & truth_T, std::v
     int n_entries = tree->GetEntries();
 
     // Fill the vectors
-    for ( int i = 0; i < n_entries; ++i ){
+    for ( int i = n_min_bins; i < n_max_bins; ++i ){
     
         tree->GetEntry(i);
     

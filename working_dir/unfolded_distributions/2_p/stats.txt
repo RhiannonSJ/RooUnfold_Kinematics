@@ -1,6 +1,6 @@
  File to record the statistics for signal with 2 protons 
  ======================================================= 
- True : 130973
- Cut  : 53129
- Reco : 53360
- Unf  : 203349
+ True : 65414
+ Cut  : 26795
+ Reco : 26919
+ Unf  : 66742.2
