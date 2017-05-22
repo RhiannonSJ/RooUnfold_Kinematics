@@ -29,13 +29,13 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
         cout << "======================== Default + MEC event file open ========================" << endl;
     }
  
-    TFile f_train("/hepstore/rjones/Exercises/Flavours/Default/sbnd/1M/gntp.10000.gst.root");
+    TFile f_train("/hepstore/rjones/Exercises/Flavours/Default+MEC_2/sbnd/1M/gntp.10000.gst.root");
     if(f_train.IsZombie()){
         std::cerr << " Error opening file " << endl;
         exit(1);
     }
     else{
-        cout << "=========================== Default event file open ===========================" << endl;
+        cout << "====================== 2nd Default + MEC event file open ======================" << endl;
     }
 
     //==============================================================================
@@ -93,16 +93,17 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     // Get the truth vectors 
     //==============================================================================
 
-    int n_half = gst_test->GetEntries() / 2;
-    int n_full = gst_test->GetEntries();
-    
+    int n_half  = gst_test->GetEntries() / 2;
+    int n_full  = gst_test->GetEntries();
+    int n_train = gst_train->GetEntries();
+
     std::vector<double> truth_T_train; 
     std::vector<double> truth_cos_train; 
     std::vector<bool>   truth_detectable_train;
     std::vector<double> impur_T_train; 
     std::vector<double> impur_cos_train; 
 
-    GetTruth( gst_test, 0, n_half, n_protons, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
+    GetTruth( gst_train, 0, n_train, n_protons, truth_T_train, truth_cos_train, truth_detectable_train, impur_T_train, impur_cos_train );
 
     std::vector<double> truth_T_test; 
     std::vector<double> truth_cos_test; 
@@ -110,7 +111,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     std::vector<double> impur_T_test; 
     std::vector<double> impur_cos_test; 
 
-    GetTruth( gst_test, n_half, n_full, n_protons, truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
+    GetTruth( gst_test, 0, n_full, n_protons, truth_T_test, truth_cos_test, truth_detectable_test, impur_T_test, impur_cos_test );
     
     //==============================================================================
     // Smearing 
