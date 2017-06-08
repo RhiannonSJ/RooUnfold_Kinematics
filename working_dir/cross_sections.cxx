@@ -20,22 +20,22 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     //==============================================================================
     // Reading in the event root files 
     //==============================================================================
-    TFile f_test("/hepstore/rjones/Exercises/Flavours/Default+MEC/sbnd/1M/gntp.10000.gst.root");
+    TFile f_test("/hepstore/rjones/Exercises/Flavours/G16_01b/sbnd/1M/gntp.10000.gst.root");
     if(f_test.IsZombie()){
         std::cerr << " Error opening file " << endl;
         exit(1);
     }
     else{
-        cout << "======================== Default + MEC event file open ========================" << endl;
+        cout << "=========================== G16_01b event file open ===========================" << endl;
     }
  
-    TFile f_train("/hepstore/rjones/Exercises/Flavours/Default+MEC_2/sbnd/1M/gntp.10000.gst.root");
+    TFile f_train("/hepstore/rjones/Exercises/Flavours/G16_01b_2/sbnd/1M/gntp.10000.gst.root");
     if(f_train.IsZombie()){
         std::cerr << " Error opening file " << endl;
         exit(1);
     }
     else{
-        cout << "====================== 2nd Default + MEC event file open ======================" << endl;
+        cout << "========================= 2nd G16_01b event file open =========================" << endl;
     }
 
     //==============================================================================
@@ -71,7 +71,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string stats;
     stats.clear();
 
-    temp_stats << "working_dir/unfolded_distributions/" << pr_path << "/stats.txt";
+    temp_stats << "working_dir/for_report/" << pr_path << "/stats.txt";
     
     stats = temp_stats.str();    
 
@@ -153,7 +153,12 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     TH2D *h_true_test  = new TH2D( "h_true_test", " true ", 20, -1, 1, 18, 0, 2 );     
     TH2D *h_cut_test   = new TH2D( "h_cut_test",  " cut  ", 20, -1, 1, 18, 0, 2 );     
     TH2D *h_reco_test  = new TH2D( "h_reco_test", " reco ", 20, -1, 1, 18, 0, 2 );     
-    
+   
+    // Scaling factor for all SBND events
+    double scale = 7.56016;
+    //double scale = 0.2;
+
+
     for ( unsigned int i = 0; i < truth_T_test.size(); ++i ) {
         h_true_test->Fill( truth_cos_test[i], truth_T_test[i]);
 
@@ -166,6 +171,16 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     for ( unsigned int i = 0; i < impur_smear_T_test.size(); ++i ) {
         h_reco_test->Fill( impur_smear_cos_test[i], impur_smear_T_test[i]);
     }
+
+    cout << " Reco before : " << h_reco_test->Integral() << endl;
+    cout << " True before : " << h_true_test->Integral() << endl << endl;
+    
+    h_reco_test->Scale(scale);
+    h_true_test->Scale(scale);
+    h_cut_test->Scale(scale);
+
+    cout << " Reco after  : " << h_reco_test->Integral() << endl;
+    cout << " True after  : " << h_true_test->Integral() << endl;
 
     RooUnfoldBayes unfold( &response, h_reco_test, 1 );
     TH2D *h_unfold_test =  (TH2D*) unfold.Hreco();
@@ -193,7 +208,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_tr;
     image_tr.clear();
 
-    temp_tr << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_true.png";
+    temp_tr << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_true.png";
     
     image_tr = temp_tr.str();    
 
@@ -222,7 +237,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_ct;
     image_ct.clear();
 
-    temp_ct << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_cut.png";
+    temp_ct << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_cut.png";
     
     image_ct = temp_ct.str();    
 
@@ -235,7 +250,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     h_reco_test->SetStats(kFALSE);
     h_reco_test->GetXaxis()->SetTitle("cos#theta_{#mu}");
     h_reco_test->GetYaxis()->SetTitle("T_{#mu}");
-    h_reco_test->SetTitle("Reco kinematics");
+    h_reco_test->SetTitle("Data-like kinematics");
     h_reco_test->Draw("colz");
     
     // Get the integral to see statistics 
@@ -251,7 +266,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_re;
     image_re.clear();
 
-    temp_re << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_reco.png";
+    temp_re << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_reco.png";
     
     image_re = temp_re.str();    
 
@@ -285,7 +300,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_unf;
     image_unf.clear();
 
-    temp_unf << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_unfolded.png";
+    temp_unf << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_unfolded.png";
     
     image_unf = temp_unf.str();    
 
@@ -314,7 +329,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_cmp;
     image_cmp.clear();
 
-    temp_cmp << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_true_unfold_comp.png";
+    temp_cmp << "working_dir/for_report/" << pr_path << "/" << pr_path << "_true_unfold_comp.png";
     
     image_cmp = temp_cmp.str();    
 
@@ -341,7 +356,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_eff;
     image_eff.clear();
 
-    temp_eff << "working_dir/unfolded_distributions/" << pr_path <<  "/" << pr_path <<"_efficiency.png";
+    temp_eff << "working_dir/for_report/" << pr_path <<  "/" << pr_path <<"_efficiency.png";
     
     image_eff = temp_eff.str();    
 
@@ -354,16 +369,22 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
   
     // Normalization variables
     double cos_bins = h_unfold_test->GetXaxis()->GetBinWidth(1);
-    double Tmu_bins = h_unfold_test->GetYaxis()->GetBinWidth(1);
-    double flux_int = h_flux->Integral();
-    double Na       = 6.63e34;
-    double M_fid    = 1.016e8; // grams
-    double A_ar     = 39.948;
-    double tot_tgt  = ( Na * M_fid ) / ( A_ar ); // given in flux unit definition  
-    double barns    = 1e38;
+    double Tmu_bins = h_unfold_test->GetYaxis()->GetBinWidth(1); // GeV
+    // Units of flux: #/m^2/50MeV/10^6 POT
+    double flux_int = h_flux->Integral("width");
+    double Na       = 6.022e23;  //
+    double M_fid    = 112000; // (kg / m^3) * m^3
+    double A_ar     = 0.039948;  // kg / mol
+    double tot_tgt  = ( Na * M_fid ) / ( A_ar ); // number of target particles  
+    double POT      = 6.6e20;    // POT
+    double scaling  = 5e8;      // Sort units from factor of 1 / ( integrated flux * Nt * bin widths * POT )
+    double cm_conv  = 1e-38;     // take out factor of 10e-38 cm^2 
+    double units_scale = 10e48; // Scale for units 
 
-    double scalar_norm = ( barns ) / ( cos_bins * Tmu_bins * flux_int * tot_tgt );
-    
+    cout << " With width : " << h_flux->Integral("width") << endl;
+    cout << " Without    : " << h_flux->Integral() << endl;
+    double scalar_norm = 1 / ( cos_bins * Tmu_bins * flux_int * tot_tgt * POT );
+
     TH2D *h_ddxsec = new TH2D( *h_unfold_test );
     h_ddxsec->Scale( scalar_norm );
 
@@ -372,7 +393,16 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     h_ddxsec->GetYaxis()->SetTitle("T_{#mu}");
     h_ddxsec->SetTitle("CC0#pi, d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");
     h_ddxsec->Draw("colz");
-    
+      
+    cout << " Scale : " << scaling << endl;
+    cout << " Cos   : " << cos_bins << endl;
+    cout << " T     : " << Tmu_bins << endl;
+    cout << " Flux  : " << flux_int << endl;
+    cout << " Target: " << tot_tgt << endl;
+    cout << " POT   : " << POT << endl << endl;
+    cout << " Scaling factor : " << scalar_norm << endl;
+    cout << " Integrated tot : " << h_unfold_test->Integral() << endl << endl;
+
     char ddxsec_path[1024];
     
     stringstream temp_ddx;
@@ -381,7 +411,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_ddx;
     image_ddx.clear();
 
-    temp_ddx << "working_dir/unfolded_distributions/" << pr_path << "/" << pr_path << "_2D_unfolding_ddxsec.png";
+    temp_ddx << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_unfolding_ddxsec.png";
     
     image_ddx = temp_ddx.str();    
 
@@ -639,7 +669,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
 
     TCanvas *c_Tmu   = new TCanvas ( "c_Tmu", "", 800, 600 );
    
-    TLegend *leg_T   = new TLegend( 0.12, 0.78, 0.28, 0.88 );
+    TLegend *leg_T   = new TLegend( 0.12, 0.68, 0.32, 0.88 );
 
     TH1D *h_Tmu      = new TH1D ( "h_Tmu", "", x_bins, -1, 1 );
     TH1D *h_Tmu_true = new TH1D ( "h_Tmu_true", "", x_bins, -1, 1 );
@@ -669,7 +699,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
 
         char file_name[1024];
 
-        conv << setprecision(4) << "working_dir/unfolded_distributions/" << n_pr << "/Tmu_slice_" << low_edge_T << ";" << up_edge_T << ".png";
+        conv << setprecision(4) << "working_dir/for_report/" << n_pr << "/Tmu_slice_" << low_edge_T << ";" << up_edge_T << ".png";
         title = conv.str();
         
         strcpy( file_name, title.c_str() );
@@ -711,7 +741,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
         h_Tmu_reco->SetLineColor( kBlue + 2 );
         h_Tmu_reco->SetLineStyle( 7 );
 
-        h_Tmu->SetTitleOffset(1.4, "Y");
+        h_Tmu->SetTitleOffset(1.45, "Y");
         h_Tmu->SetStats(kFALSE);
 
         leg_T->Draw();
@@ -729,7 +759,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
 
     TCanvas *c_cosmu   = new TCanvas ( "c_cosmu", "", 800, 600 );
     
-    TLegend *leg_c     = new TLegend( 0.72, 0.78, 0.88, 0.88 );
+    TLegend *leg_c     = new TLegend( 0.68, 0.68, 0.88, 0.88 );
 
     TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0, 2 );
     TH1D *h_cosmu_true = new TH1D ( "h_cosmu_true", "", y_bins, 0, 2 );
@@ -760,7 +790,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
 
         char file_name1[1024];
 
-        conv1 << setprecision(4) << "working_dir/unfolded_distributions/" << n_pr << "/cos_thetamu_slice_" << low_edge_cos << ";" << up_edge_cos << ".png";
+        conv1 << setprecision(4) << "working_dir/for_report/" << n_pr << "/cos_thetamu_slice_" << low_edge_cos << ";" << up_edge_cos << ".png";
         title1 = conv1.str();
         
         strcpy( file_name1, title1.c_str() );
@@ -801,7 +831,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
         h_cosmu_true->SetLineColor( kGreen + 2 );
         h_cosmu_reco->SetLineColor( kBlue + 2 );
         h_cosmu_reco->SetLineStyle( 7 );
-        h_cosmu->SetTitleOffset(1.4, "Y");
+        h_cosmu->SetTitleOffset(1.45, "Y");
         h_cosmu->SetStats(kFALSE);
 
         leg_c->Draw();
