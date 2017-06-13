@@ -1,8 +1,0 @@
-#include <iostream>
-using std::cout;
-using std::endl;
-
-#include "roo_unfold.h"
-
-void Slices( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024] );
-
