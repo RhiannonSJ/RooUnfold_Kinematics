@@ -1,6 +1,6 @@
  File to record the statistics for signal with all protons 
  ========================================================= 
  True : 3.72572e+06
- Cut  : 3.65425e+06
- Reco : 3.69592e+06
- Unf  : 3.74618e+06
+ Cut  : 3.63177e+06
+ Reco : 3.67056e+06
+ Unf  : 3.8052e+06

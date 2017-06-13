@@ -8,11 +8,37 @@ using std::endl;
 #include "../src/RooUnfoldBayes.h"
 
 
-void GetTruth( TTree *tree, int n_min_bins, int n_max_bins,  int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos );
+void GetTruth( TTree *tree, 
+               int n_min_bins, 
+               int n_max_bins,  
+               int n_protons, 
+               std::vector<double> & truth_T, 
+               std::vector<double> & truth_cos, 
+               std::vector<bool>   & truth_detectable, 
+               std::vector<double> & impur_T, 
+               std::vector<double> & impur_cos );
 
-void Smear( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, std::vector<double> & smear_T, std::vector<double> & smear_cos ); 
+bool isReconstructed(double tmu, double cos, TRandom *_rand);
 
-void GetResponse( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, const std::vector<bool> & truth_detectable, const std::vector<double> & smear_T, const std::vector<double> & smear_cos, const std::vector<double> & smear_impur_T, const std::vector<double> & smear_impur_cos, RooUnfoldResponse & response); 
+bool isContained(double tmu, double cos, TRandom *_rand);
+
+double RangeSmear(double ke, ROOT::Math::GSLRngMT *_random_gen);
+
+double McsSmear(double ke, ROOT::Math::GSLRngMT *_random_gen);
+
+void Smear( const std::vector<double> & truth_T, 
+            const std::vector<double> & truth_cos, 
+            std::vector<double>       & smear_T, 
+            std::vector<double>       & smear_cos );
+
+void GetResponse( const std::vector<double> & truth_T, 
+                  const std::vector<double> & truth_cos,
+                  const std::vector<bool>   & truth_detectable, 
+                  const std::vector<double> & smear_T, 
+                  const std::vector<double> & smear_cos, 
+                  const std::vector<double> & smear_impur_T, 
+                  const std::vector<double> & smear_impur_cos, 
+                  RooUnfoldResponse         & response); 
 
 void Slices( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024] );
 
@@ -20,22 +46,22 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     //==============================================================================
     // Reading in the event root files 
     //==============================================================================
-    TFile f_test("/hepstore/rjones/Exercises/Flavours/G16_01b/sbnd/1M/gntp.10000.gst.root");
+    TFile f_test("/hepstore/rjones/Exercises/Flavours/G16_02a/sbnd/1M/gntp.10000.gst.root");
     if(f_test.IsZombie()){
         std::cerr << " Error opening file " << endl;
         exit(1);
     }
     else{
-        cout << "=========================== G16_01b event file open ===========================" << endl;
+        cout << "=========================== G16_02a event file open ===========================" << endl;
     }
  
-    TFile f_train("/hepstore/rjones/Exercises/Flavours/G16_01b_2/sbnd/1M/gntp.10000.gst.root");
+    TFile f_train("/hepstore/rjones/Exercises/Flavours/G16_01b/sbnd/1M/gntp.10000.gst.root");
     if(f_train.IsZombie()){
         std::cerr << " Error opening file " << endl;
         exit(1);
     }
     else{
-        cout << "========================= 2nd G16_01b event file open =========================" << endl;
+        cout << "=========================== G16_01b event file open =========================" << endl;
     }
 
     //==============================================================================
@@ -71,7 +97,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string stats;
     stats.clear();
 
-    temp_stats << "working_dir/for_report/" << pr_path << "/stats.txt";
+    temp_stats << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path << "/stats.txt";
     
     stats = temp_stats.str();    
 
@@ -208,7 +234,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_tr;
     image_tr.clear();
 
-    temp_tr << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_true.png";
+    temp_tr << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path << "/" << pr_path << "_2D_true.png";
     
     image_tr = temp_tr.str();    
 
@@ -237,7 +263,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_ct;
     image_ct.clear();
 
-    temp_ct << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_cut.png";
+    temp_ct << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path << "/" << pr_path << "_2D_cut.png";
     
     image_ct = temp_ct.str();    
 
@@ -266,7 +292,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_re;
     image_re.clear();
 
-    temp_re << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_reco.png";
+    temp_re << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path << "/" << pr_path << "_2D_reco.png";
     
     image_re = temp_re.str();    
 
@@ -300,7 +326,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_unf;
     image_unf.clear();
 
-    temp_unf << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_unfolded.png";
+    temp_unf << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path << "/" << pr_path << "_2D_unfolded.png";
     
     image_unf = temp_unf.str();    
 
@@ -329,7 +355,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_cmp;
     image_cmp.clear();
 
-    temp_cmp << "working_dir/for_report/" << pr_path << "/" << pr_path << "_true_unfold_comp.png";
+    temp_cmp << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path << "/" << pr_path << "_true_unfold_comp.png";
     
     image_cmp = temp_cmp.str();    
 
@@ -356,7 +382,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_eff;
     image_eff.clear();
 
-    temp_eff << "working_dir/for_report/" << pr_path <<  "/" << pr_path <<"_efficiency.png";
+    temp_eff << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path <<  "/" << pr_path <<"_efficiency.png";
     
     image_eff = temp_eff.str();    
 
@@ -371,7 +397,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     double cos_bins = h_unfold_test->GetXaxis()->GetBinWidth(1);
     double Tmu_bins = h_unfold_test->GetYaxis()->GetBinWidth(1); // GeV
     // Units of flux: #/m^2/50MeV/10^6 POT
-    double flux_int = h_flux->Integral("width");
+    double flux_int = h_flux->Integral();
     double Na       = 6.022e23;  //
     double M_fid    = 112000; // (kg / m^3) * m^3
     double A_ar     = 0.039948;  // kg / mol
@@ -381,9 +407,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     double cm_conv  = 1e-38;     // take out factor of 10e-38 cm^2 
     double units_scale = 10e48; // Scale for units 
 
-    cout << " With width : " << h_flux->Integral("width") << endl;
-    cout << " Without    : " << h_flux->Integral() << endl;
-    double scalar_norm = 1 / ( cos_bins * Tmu_bins * flux_int * tot_tgt * POT );
+    double scalar_norm = scaling / ( cm_conv * cos_bins * Tmu_bins * flux_int * tot_tgt * POT );
 
     TH2D *h_ddxsec = new TH2D( *h_unfold_test );
     h_ddxsec->Scale( scalar_norm );
@@ -411,7 +435,7 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
     string image_ddx;
     image_ddx.clear();
 
-    temp_ddx << "working_dir/for_report/" << pr_path << "/" << pr_path << "_2D_unfolding_ddxsec.png";
+    temp_ddx << "working_dir/G16_01b_train_G16_02a_test_1it/" << pr_path << "/" << pr_path << "_2D_unfolding_ddxsec.png";
     
     image_ddx = temp_ddx.str();    
 
@@ -442,7 +466,15 @@ void cross_sections( const int &n_protons, const char pr_path[1024] ) {
 }
 
 
-void GetTruth( TTree *tree, int n_min_bins, int n_max_bins, int n_protons, std::vector<double> & truth_T, std::vector<double> & truth_cos, std::vector<bool> & truth_detectable, std::vector<double> & impur_T, std::vector<double> & impur_cos ) {
+void GetTruth( TTree *tree, 
+               int n_min_bins, 
+               int n_max_bins, 
+               int n_protons, 
+               std::vector<double> & truth_T, 
+               std::vector<double> & truth_cos, 
+               std::vector<bool>   & truth_detectable, 
+               std::vector<double> & impur_T, 
+               std::vector<double> & impur_cos ) {
 
     TBranch *b_Ef    = tree->GetBranch("Ef");
     TBranch *b_El    = tree->GetBranch("El");
@@ -512,6 +544,8 @@ void GetTruth( TTree *tree, int n_min_bins, int n_max_bins, int n_protons, std::
             }
         }
 
+        TRandom *random = new TRandom();
+
         if ( ( n_protons != -1 && nfp == n_protons ) || ( n_protons == -1 ) ){
             // If there are no pions fill the kinetic energy and cos theta with the muon energy   
             if ( cc == 1 && nfpip + nfpim + nfpi0 == 0 ){
@@ -523,10 +557,10 @@ void GetTruth( TTree *tree, int n_min_bins, int n_max_bins, int n_protons, std::
  
                     bool isDetectable = false;
                     if ( n_protons == -1 ) {
-                        isDetectable = (T_mu > T_thresh_mu);
+                        isDetectable = ( isReconstructed( T_mu, cos_mu, random ) );
                     }
                     else{
-                        isDetectable = (T_mu > T_thresh_mu && n_protons == n_detectable_pr);
+                        isDetectable = ( isReconstructed( T_mu, cos_mu, random ) && n_protons == n_detectable_pr);
                     }
 
                     truth_T.push_back(T_mu);
@@ -595,56 +629,286 @@ void GetTruth( TTree *tree, int n_min_bins, int n_max_bins, int n_protons, std::
     }
 }
 
-void Smear( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, std::vector<double> & smear_T, std::vector<double> & smear_cos ) {
+bool isReconstructed(double tmu, double cos, TRandom *_rand){
+
+    if(tmu<0.05) return 0;
+    
+    //CCQE efficiency as function of momentum from Fig10.b of uboone DocDB 7561
+    
+    double effmom[] = {0.79,0.95,0.975,0.98,0.98,0.99,0.99,0.995,1.0,1.0};
+    
+    //CCQE efficiency as function of theta from Fig10.c of uboone DocDB 7561
+    
+    double efftheta[] = {1,1,1,1,1,1,0.995,0.985,1,0.985,0.995,1,1,1,1,0.995,0.995,0.995,0.99,0.98,0.97,0.97,0.975,0.98,0.975,0.97,0.95,0.945,0.94,0.92,0.87,0.91};
+    
+    //Find position of muon momentum in momentum efficiency array
+    
+    int posmom = 9; 
+    
+    for(int i=0; i<10; i++){
+    
+      if(tmu<0.1*(i+1)) {posmom = i; break;}
+    
+    }
+    
+    //Find position of muon angle in angle efficiency array
+    
+    int postheta = 0; 
+    
+    for(int j=0; j<32; j++){
+    
+      if(TMath::ACos(cos)<0.09817*(j+1)) {postheta = j; break;}
+    
+    }
+    
+    //Don't have correlations between angle and momentum efficiencies, take the smallest value to be conservative
+    
+    double efficiency = 1; 
+    
+    if(effmom[posmom]<efftheta[postheta]) efficiency = effmom[posmom];
+    
+    else efficiency = efftheta[postheta];
+    
+    //Generate random number between 0 and 1
+    
+    double prob = _rand->Uniform(0,1);
+    
+    if(prob<=efficiency) return 1;
+    
+    else return 0;
+
+}
+
+bool isContained(double tmu, double cos, TRandom *_rand){
+
+      // Values from http://pdg.lbl.gov/2012/AtomicNuclearProperties/MUON_ELOSS_TABLES/muonloss_289.pdf
+
+      double momentum[] = {0.047,0.056,0.068,0.085,0.100,0.153,0.176,0.222,0.287,0.392,0.495,0.900,1.101,1.502,2.103}; //GeV
+    
+      double range[] = {0.007,0.013,0.024,0.047,0.076,0.221,0.304,0.482,0.761,1.236,1.708,3.534,4.415,6.126,8.610}; //m
+        
+      // Find position of muon momentum in momentum array
+    
+      int pos = 15;
+    
+      for(int i=0; i<15; i++){
+    
+        if(tmu<momentum[i]) {pos = i; break;}
+    
+      }
+    
+      //Use linear interpolation to calculate expected range in LAr
+    
+      double rmu = 0;
+    
+      if(pos==15) rmu = 9;
+    
+      else if(pos==0) rmu = 0.007;
+    
+      else{
+    
+        rmu = range[pos-1]+(tmu-momentum[pos-1])*(range[pos]-range[pos-1])/(momentum[pos]-momentum[pos-1]);
+    
+      }
+    
+      //Generate a random position inside detector
+    
+      double zstart = _rand->Uniform(0,5.312);
+    
+      double ystart = _rand->Uniform(0,4.294);
+    
+      double xstart = _rand->Uniform(0,4.312);
+    
+      double phi = _rand->Uniform(0,6.283);
+    
+      double theta = TMath::ACos(cos);
+    
+      //Calculate end position
+    
+      double zend = zstart + rmu*cos;
+    
+      double yend = ystart + rmu*TMath::Sin(theta)*TMath::Sin(phi);
+    
+      double xend = xstart + rmu*TMath::Sin(theta)*TMath::Cos(phi);
+    
+      //If range * cos thetamu <= z position
+    
+      if(xend>=0 && xend<=4.312 && yend>=0 && yend<=4.294 && zend>=0 && zend<=5.312) return 1;
+    
+      else return 0;
+
+}
+
+double RangeSmear(double ke, ROOT::Math::GSLRngMT *_random_gen){
+
+      //For contained muons use range based bias and resolution
+    
+      //Values from Fig 12 of https://arxiv.org/pdf/1703.06187.pdf
+    
+      double bias[] = {-0.0035,-0.0059,-0.0047,-0.0059,-0.0035,-0.0029,-0.0076,-0.0059,0.0006};
+    
+      double resolution[] = {0.017,0.021,0.023,0.026,0.025,0.030,0.030,0.040,0.032};
+
+      int pos = 8;
+
+      for(int i=0; i<9; i++){
+
+        if(ke<(0.33+0.186*(i+1))) {pos = i; break;}
+
+    }
+
+    /* The lognormal version
+    double var_mu     = TMath::Power( ke * resolution[pos], 2 );
+    double sigma_mu   = TMath::Sqrt( TMath::Log( 1 + ( var_mu / TMath::Power(ke, 2 ) ) ) );
+    double zeta_mu    = TMath::Log( ke * ( 1 / TMath::Sqrt( 1 + ( var_mu / TMath::Power( ke, 2 ) ) ) ) );
+    double ke_smear   = ke + _random_gen->LogNormal( zeta_mu, sigma_mu )+bias[pos]*ke;
+      */       
+
+   double ke_smear = ke + _random_gen->Gaussian(resolution[pos]*ke)+bias[pos]*ke;
+
+    if(ke_smear<0) ke_smear = 0;  return ke_smear;
+
+}
+
+double McsSmear(double ke, ROOT::Math::GSLRngMT *_random_gen){
+
+    //For exiting muons use multiple coulomb scattering bias and resolution
+
+    //Values from Fig 5 of https://arxiv.org/pdf/1703.06187.pdf
+
+    double bias[] = {0.0273,0.0409,0.0352,0.0250,0.0227,0.0068,0.0364,0.0273,0.0227};//0.0409
+
+    double resolution[] = {0.127,0.145,0.143,0.141,0.164,0.177,0.250,0.266,0.341};//0.145
+
+    int pos = 8;
+
+    for(int i=0; i<9; i++){
+
+        if(ke<(0.34+0.41*(i+1))) {pos = i; break;}
+
+    }
+
+    /* The lognormal version
+    double var_mu     = TMath::Power( ke * resolution[pos], 2 );
+    double sigma_mu   = TMath::Sqrt( TMath::Log( 1 + ( var_mu / TMath::Power(ke, 2 ) ) ) );
+    double zeta_mu    = TMath::Log( ke * ( 1 / TMath::Sqrt( 1 + ( var_mu / TMath::Power( ke, 2 ) ) ) ) );
+    double lognorm_mu = _random_gen->LogNormal( zeta_mu, sigma_mu );
+    double ke_smear   = ke + lognorm_mu + bias[pos]*ke;
+      */       
+
+    double var = _random_gen->Gaussian(resolution[pos]*ke);
+
+    double ke_smear = ke + var + bias[pos]*ke;
+
+    if(ke_smear<0) ke_smear = 0;  return ke_smear;
+
+}
+
+void Smear( const std::vector<double> & truth_T, 
+            const std::vector<double> & truth_cos, 
+            std::vector<double>       & smear_T, 
+            std::vector<double>       & smear_cos ) {
 
     // Initiate the random number generation
     ROOT::Math::GSLRngMT *_random_gen = new ROOT::Math::GSLRngMT;
     _random_gen->Initialize();
     _random_gen->SetSeed( time( NULL ) );
- 
+
+    // Random number for position in the detector
+    TRandom *random = new TRandom();
+
     int n_values = truth_T.size();
 
     if ( truth_T.size() != truth_cos.size() ){
         std::cerr << " Vectors must be the same length " << endl;
         exit(1);
     }
+
     // Event by event, generate Tmu_prime and Tpi_prime: lognormal
     // Then find thetamu_prime and thetapi_prime: gaussian
     for ( int i = 0; i < n_values; ++i ){
  
-        // -------------------------------------------------------
-        //                   Kinetic energy
-        // -------------------------------------------------------
-        // Calculate the mean and sigma for the LogNormal function
-        //     zeta  = TMath::Log( m * ( 1 / sqrt( 1 + ( var / pow( m, 2 ) ) ) ) );
-        //     sigma = sqrt( log( 1 + ( var / pow( m, 2 ) ) ) );
-        //     m     = expectation value = Tl
-        //     var   = variance = s.d.^2 = ( Tl * 0.1 ) ^ 2
- 
-        double var_mu     = TMath::Power( truth_T[i] * 0.1, 2 );
-        double sigma_mu   = TMath::Sqrt( TMath::Log( 1 + ( var_mu / TMath::Power(truth_T[i], 2 ) ) ) );
-        double zeta_mu    = TMath::Log( truth_T[i] * ( 1 / TMath::Sqrt( 1 + ( var_mu / TMath::Power( truth_T[i], 2 ) ) ) ) );
-        double lognorm_mu = _random_gen->LogNormal( zeta_mu, sigma_mu );
-     
-        // -------------------------------------------------------
-        //                  Cos theta
-        // -------------------------------------------------------
-     
-        // Calculate the mean and sigma for the LogNormal function
-        //      theta = acos(costtheta)
-        //      var   = 5 degrees
-     
-        double sd_thetamu    = TMath::Pi() / 36; // 5 degrees
-        double gaus_theta    = TMath::ACos( truth_cos[i] ) + _random_gen->Gaussian( sd_thetamu );
-        double gaus_costheta = TMath::Cos( gaus_theta );
-     
-        smear_T.push_back(lognorm_mu);
-        smear_cos.push_back(gaus_costheta);
+        // Find out if the event was reconstructed
+        //if ( isReconstructed( truth_T[i], truth_cos[i], random ) ){
 
-    }
+            // Find out if the event was contained
+            // If contained: use Range smear
+            //               smear cos as normal
+            // If exiting  : use MCS smear
+            //               smear cos as normal
+            if ( isContained(truth_T[i], truth_cos[i], random ) ){
+                
+                // -------------------------------------------------------
+                //                   Kinetic energy
+                // -------------------------------------------------------
+                // Calculate the mean and sigma for the LogNormal function
+                //     zeta  = TMath::Log( m * ( 1 / sqrt( 1 + ( var / pow( m, 2 ) ) ) ) );
+                //     sigma = sqrt( log( 1 + ( var / pow( m, 2 ) ) ) );
+                //     m     = expectation value = Tl
+                //     var   = variance = s.d.^2 = ( Tl * 0.1 ) ^ 2
+                double range_smeared_mu = RangeSmear( truth_T[i], _random_gen );
+    
+                smear_T.push_back(range_smeared_mu);
+                    
+    
+                // -------------------------------------------------------
+                //                  Cos theta
+                // -------------------------------------------------------
+             
+                // Calculate the mean and sigma for the LogNormal function
+                //      theta = acos(costtheta)
+                //      var   = 5 degrees
+             
+                double sd_thetamu    = TMath::Pi() / 36; // 5 degrees
+                double gaus_theta    = TMath::ACos( truth_cos[i] ) + _random_gen->Gaussian( sd_thetamu );
+                double gaus_costheta = TMath::Cos( gaus_theta );
+                 
+                smear_cos.push_back(gaus_costheta);
+      
+            }
+            else{
+    
+                // -------------------------------------------------------
+                //                   Kinetic energy
+                // -------------------------------------------------------
+                // Calculate the mean and sigma for the LogNormal function
+                //     zeta  = TMath::Log( m * ( 1 / sqrt( 1 + ( var / pow( m, 2 ) ) ) ) );
+                //     sigma = sqrt( log( 1 + ( var / pow( m, 2 ) ) ) );
+                //     m     = expectation value = Tl
+                //     var   = variance = s.d.^2 = ( Tl * 0.1 ) ^ 2
+                double mcs_smeared_mu = RangeSmear( truth_T[i], _random_gen );
+    
+                smear_T.push_back(mcs_smeared_mu);
+                 
+    
+                // -------------------------------------------------------
+                //                  Cos theta
+                // -------------------------------------------------------
+          
+                // Calculate the mean and sigma for the LogNormal function
+                //      theta = acos(costtheta)
+                //      var   = 5 degrees
+                 
+                double sd_thetamu    = TMath::Pi() / 36; // 5 degrees
+                double gaus_theta    = TMath::ACos( truth_cos[i] ) + _random_gen->Gaussian( sd_thetamu );
+                double gaus_costheta = TMath::Cos( gaus_theta );
+                 
+                smear_cos.push_back(gaus_costheta);
+            }
+        }
+   // }
+    delete _random_gen;
+    delete random;
 }
 
-void GetResponse( const std::vector<double> & truth_T, const std::vector<double> & truth_cos, const std::vector<bool> & truth_detectable, const std::vector<double> & smear_T, const std::vector<double> & smear_cos, const std::vector<double> & smear_impur_T, const std::vector<double> & smear_impur_cos, RooUnfoldResponse & response) {
+void GetResponse( const std::vector<double> & truth_T, 
+                  const std::vector<double> & truth_cos, 
+                  const std::vector<bool>   & truth_detectable, 
+                  const std::vector<double> & smear_T, 
+                  const std::vector<double> & smear_cos, 
+                  const std::vector<double> & smear_impur_T, 
+                  const std::vector<double> & smear_impur_cos, 
+                  RooUnfoldResponse         & response) {
 
     for ( unsigned int i = 0; i < truth_T.size(); ++i ) {
         if ( truth_detectable[i] ) {
@@ -677,7 +941,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
     
     leg_T->AddEntry( h_Tmu, " Unfolded ", "l" );
     leg_T->AddEntry( h_Tmu_true, " True ", "l" );
-    leg_T->AddEntry( h_Tmu_reco, " Reco ", "l" );
+    leg_T->AddEntry( h_Tmu_reco, " Data ", "l" );
     
     for ( int i = 1; i <= y_bins; ++i ){
 
@@ -699,7 +963,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
 
         char file_name[1024];
 
-        conv << setprecision(4) << "working_dir/for_report/" << n_pr << "/Tmu_slice_" << low_edge_T << ";" << up_edge_T << ".png";
+        conv << setprecision(4) << "working_dir/G16_01b_train_G16_02a_test_1it/" << n_pr << "/Tmu_slice_" << low_edge_T << ";" << up_edge_T << ".png";
         title = conv.str();
         
         strcpy( file_name, title.c_str() );
@@ -767,7 +1031,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
      
     leg_c->AddEntry( h_cosmu, " Unfolded ", "l" );
     leg_c->AddEntry( h_cosmu_true, " True ", "l" );
-    leg_c->AddEntry( h_cosmu_reco, " Reco ", "l" );
+    leg_c->AddEntry( h_cosmu_reco, " Data ", "l" );
     
     // Cos theta mu slices
     for ( int i = 1; i <= x_bins; ++i ){
@@ -790,7 +1054,7 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
 
         char file_name1[1024];
 
-        conv1 << setprecision(4) << "working_dir/for_report/" << n_pr << "/cos_thetamu_slice_" << low_edge_cos << ";" << up_edge_cos << ".png";
+        conv1 << setprecision(4) << "working_dir/G16_01b_train_G16_02a_test_1it/" << n_pr << "/cos_thetamu_slice_" << low_edge_cos << ";" << up_edge_cos << ".png";
         title1 = conv1.str();
         
         strcpy( file_name1, title1.c_str() );

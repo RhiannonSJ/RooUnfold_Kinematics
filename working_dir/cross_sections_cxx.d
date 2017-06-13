@@ -81,6 +81,7 @@
 ./working_dir/cross_sections_cxx.so: /hepstore/rjones/Software/ROOT/Install/include/root/TMatrixDSymfwd.h
 ./working_dir/cross_sections_cxx.so: /hepstore/rjones/Software/ROOT/Install/include/root/TMatrixDSparse.h
 ./working_dir/cross_sections_cxx.so: /hepstore/rjones/Software/ROOT/Install/include/root/TMatrixDSparsefwd.h
+./working_dir/cross_sections_cxx.so: /hepstore/rjones/Software/ROOT/Install/include/root/TRandom.h
 ./working_dir/cross_sections_cxx.so: /hepstore/rjones/Software/ROOT/Install/include/root/THStack.h
 ./working_dir/cross_sections_cxx.so: /hepstore/rjones/Software/ROOT/Install/include/root/TCanvas.h
 ./working_dir/cross_sections_cxx.so: /hepstore/rjones/Software/ROOT/Install/include/root/TPad.h

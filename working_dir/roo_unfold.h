@@ -24,6 +24,7 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TVectorD.h"
+#include "TRandom.h"
 #include "THStack.h"
 #include "TCanvas.h"
 #include "TLegend.h"

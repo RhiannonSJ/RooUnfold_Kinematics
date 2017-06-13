@@ -1,0 +1,6 @@
+ File to record the statistics for signal with 1 protons 
+ ======================================================= 
+ True : 1.22392e+06
+ Cut  : 1.00825e+06
+ Reco : 1.02134e+06
+ Unf  : 1.2396e+06
