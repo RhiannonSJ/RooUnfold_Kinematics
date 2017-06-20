@@ -23,6 +23,7 @@
 #include "TLeaf.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "cov_func.h"
 #include "TVectorD.h"
 #include "TRandom.h"
 #include "THStack.h"

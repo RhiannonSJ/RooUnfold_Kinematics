@@ -208,6 +208,8 @@ void cross_sections_nosyst( const int &n_protons, const char pr_path[1024] ) {
     h_true_test->Scale(scale);
     h_cut_test->Scale(scale);
 
+    h_reco_test->Sumw2();
+
     cout << " Reco after  : " << h_reco_test->Integral() << endl;
     cout << " True after  : " << h_true_test->Integral() << endl;
 
@@ -807,8 +809,6 @@ double McsSmear(double ke, ROOT::Math::GSLRngMT *_random_gen){
     double var = _random_gen->Gaussian(resolution[pos]*ke);
 
     double ke_smear = ke + var + bias[pos]*ke;
-
-    // Convert between momentum and kinetic energy
 
     if(ke_smear<0) ke_smear = 0;  return ke_smear;
 
