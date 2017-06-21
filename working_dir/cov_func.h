@@ -38,10 +38,10 @@ using namespace std;
 int Map( unsigned int i, unsigned int j, unsigned int x_size, unsigned int y_size );
 
 
-int GetXBin( unsigned int i, unsigned int size );
+int GetXBin( unsigned int i, unsigned int size, unsigned int x_size );
 
 
-int GetYBin( unsigned int i, unsigned int size );
+int GetYBin( unsigned int i, unsigned int size, unsigned int x_size );
 
 
 // -------------------------------------------------------------------------

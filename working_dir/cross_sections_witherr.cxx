@@ -43,6 +43,8 @@ void GetResponse( const std::vector<double> & truth_T,
 
 void Slices( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024] );
 
+void Slices( TH2D *h_ddxsec, const char n_pr[1024] );
+
 void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
     //==============================================================================
     // Reading in the event root files 
@@ -166,8 +168,8 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
     // Train response matrix
     //==============================================================================
 
-    TH2D *h_true_train  = new TH2D( "h_true_train", " true ", 20, -1, 1, 18, 0, 2 );     
-    TH2D *h_reco_train  = new TH2D( "h_reco_train", " reco ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_true_train  = new TH2D( "h_true_train", " true ", 20, -1, 1, 18, 0.2, 2 );     
+    TH2D *h_reco_train  = new TH2D( "h_reco_train", " reco ", 20, -1, 1, 18, 0.2, 2 );     
 
     RooUnfoldResponse response( h_reco_train, h_true_train );
 
@@ -179,9 +181,9 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
    
     TCanvas * c = new TCanvas();
 
-    TH2D *h_true_test  = new TH2D( "h_true_test", " true ", 20, -1, 1, 18, 0, 2 );     
-    TH2D *h_cut_test   = new TH2D( "h_cut_test",  " cut  ", 20, -1, 1, 18, 0, 2 );     
-    TH2D *h_reco_test  = new TH2D( "h_reco_test", " reco ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_true_test  = new TH2D( "h_true_test", " true ", 20, -1, 1, 18, 0.2, 2 );     
+    TH2D *h_cut_test   = new TH2D( "h_cut_test",  " cut  ", 20, -1, 1, 18, 0.2, 2 );     
+    TH2D *h_reco_test  = new TH2D( "h_reco_test", " reco ", 20, -1, 1, 18, 0.2, 2 );     
    
     // Scaling factor for all SBND events
     double scale = 7.56016;
@@ -411,7 +413,7 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
     double units_scale = 10e48; // Scale for units 
 
     // Playing with flux systematic
-    double err_flux = 0.15; // 15%
+    double err_flux = 0.05; // 5%
 
     double scalar_norm = scaling / ( cm_conv * cos_bins * Tmu_bins * flux_int * tot_tgt * POT );
 
@@ -431,7 +433,7 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
 
     TCanvas *c_lin = new TCanvas();
 
-    TH1D *h_ddxsec_linear = new TH1D("h_ddxsec_linear", "", 360, 0, 360);
+    TH1D *h_ddxsec_linear = new TH1D("h_ddxsec_linear", "", 360, -0.5, 359.5);
 
     for ( int i = 0; i < n_y; ++i ){
         
@@ -439,7 +441,7 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
             
             int k = Map(j,i,n_x,n_y) + 1;
             
-            h_ddxsec_linear->Fill( k , h_ddxsec->GetBinContent(j,i));        
+            h_ddxsec_linear->SetBinContent( k , h_ddxsec->GetBinContent(j+1,i+1));        
 
         }
     }
@@ -448,49 +450,77 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
         
     std::vector< std::vector< double > > flux_cov;
 
-    std::vector< double > diagonals;
+    std::vector< double > diagonals(n_lin_bins);
+
+    TMatrixDSym covariance(n_lin_bins);
 
     // Fill covariance matrix
 
     for ( int i = 0; i < n_lin_bins; ++i ){
 
-        vector< double > temp;
-
         for ( int j = 0; j < n_lin_bins; ++j ){
             
-            double cov = h_ddxsec->GetBinContent(i+1) * h_ddxsec->GetBinContent(j+1) * err_flux * err_flux * (1/flux_int) * (1/flux_int);
+            covariance[i][j] = h_ddxsec_linear->GetBinContent(i+1) * h_ddxsec_linear->GetBinContent(j+1) * err_flux * err_flux;
 
-            temp.push_back(cov);
-        
-            cov_file << setprecision(4) << setw(4) << cov << ", ";
-
-            if ( i == j ){
-            
-                diagonals.push_back(cov);
-
-            }
+            cov_file << setprecision(4) << setw(4) << covariance[i][j] << ", ";
 
         }
-
-        flux_cov.push_back(temp);
 
         cov_file << endl;
     }
 
+
     // Set the error on the 1D bins using the diagonal elements of the covariance matrix
     
-    for ( int i = 0; i < n_lin_bins; ++i ){
+    for ( int i = 1; i <= n_lin_bins; ++i ){
         
-        h_ddxsec_linear->SetBinError(i, diagonals[i]);
-    
+        h_ddxsec_linear->SetBinError(i, TMath::Sqrt(covariance[i-1][i-1]));
+
     }
 
-    h_ddxsec_linear->Draw("hist");
-    h_ddxsec_linear->Draw("e1x0same");
+    //h_ddxsec_linear->Draw("hist");
+    h_ddxsec_linear->Draw("e1x0");
 
     c_lin->SaveAs("working_dir/err_test/linearised_ddxsec.png");
 
-    delete h_ddxsec_linear; 
+    delete c_lin;
+
+
+    // Recombine 
+    for ( int i = 0; i < n_lin_bins; ++i ){
+        
+        int x = GetXBin(i, n_lin_bins, n_x);
+        int y = GetYBin(i, n_lin_bins, n_x);
+
+        h_ddxsec->SetBinError(x+1,y+1, TMath::Sqrt(covariance[i][i]));
+
+        //cout << " n " << n_x << ", x " << x+1 << ", y " << y+1 << ", v " << h_ddxsec->GetBinContent(x+1,y+1) << ", d " << diagonals[i] << ", e " << h_ddxsec->GetBinError(x+1,y+1) << endl;
+
+    } 
+
+
+    TFile file_cov("covariance_martix.root", "RECREATE");
+
+    covariance.Write("covariance");
+
+    TCanvas * c_cov = new TCanvas();
+
+	TH2D h_cov( "h_data_cov", "Covariance;bin;bin",
+  		         n_lin_bins , -0.5, n_lin_bins - 0.5,
+				 n_lin_bins , -0.5, n_lin_bins - 0.5 )  ;
+
+
+   		  for ( unsigned int i = 0; i < n_lin_bins; ++i ) {
+   		    for ( unsigned int j = 0 ; j < n_lin_bins; ++j ) {
+   		      h_cov.Fill( i, j, covariance[i][j] ) ;
+   		    }
+   		  }
+
+    h_cov.Write("h_cov");
+    h_cov.SetStats(kFALSE);
+    h_cov.Draw("colz");
+    c_cov->SaveAs("working_dir/err_test/covariance_plot.svg");
+
 
     cov_file.close();
     
@@ -508,6 +538,10 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
     cout << " POT   : " << POT << endl << endl;
     cout << " Scaling factor : " << scalar_norm << endl;
     cout << " Integrated tot : " << h_unfold_test->Integral() << endl << endl;
+
+    TFile xsec_plot("working_dir/err_test/ddxsec_plot.root","RECREATE");
+
+    h_ddxsec->Write("h_ddxsec");
 
     char ddxsec_path[1024];
     
@@ -533,7 +567,9 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
     TH2D *h_reco_ddxsec = new TH2D( *h_reco_test );
     h_reco_ddxsec->Scale( scalar_norm );
 
-    Slices( h_unfold_test, h_true_test, h_reco_test, pr_path );
+    //Slices( h_unfold_test, h_true_test, h_reco_test, pr_path );
+
+    Slices( h_ddxsec, pr_path );
 
     delete h_true_train;
     delete h_reco_train;
@@ -545,6 +581,8 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
     delete h_true_ddxsec;
     delete h_reco_ddxsec; 
     delete h_ddxsec;
+    delete h_ddxsec_linear; 
+
 }
 
 
@@ -891,6 +929,150 @@ double McsSmear(double ke, ROOT::Math::GSLRngMT *_random_gen){
 
 }
 
+
+// Do this
+void Slices ( TH2D *h_ddxsec, const char n_pr[1024] ){
+
+    // Firstly, loop over all Tmu bins on draw slices in cos theta mu
+    // Take the bin edges to be the title
+    int x_bins = h_ddxsec->GetNbinsX(); // Cos theta
+    int y_bins = h_ddxsec->GetNbinsY(); // Tmu
+
+    TCanvas *c_Tmu   = new TCanvas ( "c_Tmu", "", 800, 600 );
+   
+    TH1D *h_Tmu      = new TH1D ( "h_Tmu", "", x_bins, -1, 1 );
+    
+    for ( int i = 1; i <= y_bins; ++i ){
+
+        // Define the histograms
+        // Get the lower and upper bin edges of the y axis
+        double low_edge_T;
+        double up_edge_T;
+
+        low_edge_T = h_ddxsec->GetYaxis()->GetBinLowEdge(i);
+        up_edge_T = h_ddxsec->GetYaxis()->GetBinLowEdge(i + 1);
+   
+        // Make the title for the current histogram and the file name
+        // Clear the title for the new loop
+        stringstream conv;
+        conv.clear();
+
+        string title;
+        title.clear();
+
+        char file_name[1024];
+
+        conv << setprecision(4) << "working_dir/err_test/xsec_slices/" << n_pr << "/Tmu_slice_" << low_edge_T << ";" << up_edge_T << ".png";
+        title = conv.str();
+        
+        strcpy( file_name, title.c_str() );
+
+        // For the title of the histogram
+        stringstream hist;
+        hist.clear();
+
+        char hist_name[1024];
+        string temp1;
+
+        hist << setprecision(4) << "T_{#mu} slice: " << low_edge_T << "_" << up_edge_T;
+        temp1 = hist.str();
+
+        strcpy( hist_name, temp1.c_str() );
+
+        // Fill the histogram
+        for ( int j = 1; j <= x_bins; ++j ){
+            h_Tmu->SetBinContent( j, h_ddxsec->GetBinContent(j, i) );
+            h_Tmu->SetBinError( j, h_ddxsec->GetBinError(j, i) ); 
+        }
+
+        double max = 1.1 * h_Tmu->GetBinContent(h_Tmu->GetMaximumBin());
+
+        h_Tmu->Draw("e1x0");
+        h_Tmu->SetTitle(hist_name);
+        h_Tmu->GetYaxis()->SetRangeUser(0,max);
+        h_Tmu->GetXaxis()->SetTitle("cos#theta_{#mu}");   
+        h_Tmu->GetYaxis()->SetTitle("CC0#pi, d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");
+
+        h_Tmu->SetTitleOffset(1.2, "Y");
+        h_Tmu->SetStats(kFALSE);
+
+        c_Tmu->SaveAs(file_name);
+
+    } 
+   
+    delete h_Tmu;
+
+    delete c_Tmu;
+
+    TCanvas *c_cosmu   = new TCanvas ( "c_cosmu", "", 800, 600 );
+    
+    TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0.2, 2 );
+     
+    // Cos theta mu slices
+    for ( int i = 1; i <= x_bins; ++i ){
+
+        // Define the histograms
+        // Get the lower and upper bin edges of the y axis
+        double low_edge_cos;
+        double up_edge_cos;
+
+        low_edge_cos = h_ddxsec->GetXaxis()->GetBinLowEdge(i);
+        up_edge_cos = h_ddxsec->GetXaxis()->GetBinLowEdge(i + 1);
+   
+        // Make the title for the current histogram and the file name
+        // Clear the title for the new loop
+        stringstream conv1;
+        conv1.clear();
+
+        string title1;
+        title1.clear();
+
+        char file_name1[1024];
+
+        conv1 << setprecision(4) << "working_dir/err_test/xsec_slices/" << n_pr << "/cos_thetamu_slice_" << low_edge_cos << ";" << up_edge_cos << ".png";
+        title1 = conv1.str();
+        
+        strcpy( file_name1, title1.c_str() );
+
+        // For the title of the histogram
+        stringstream hist1;
+        hist1.clear();
+
+        char hist_name1[1024];
+        string temp2;
+
+        hist1 << setprecision(4) << "cos#theta_{#mu} slice: " << low_edge_cos << "," << up_edge_cos;
+        temp2 = hist1.str();
+
+        strcpy( hist_name1, temp2.c_str() );
+
+        // Fill the histogram
+        for ( int j = 1; j <= y_bins; ++j ){
+            h_cosmu->SetBinContent( j, h_ddxsec->GetBinContent(i, j) );
+            h_cosmu->SetBinError( j, h_ddxsec->GetBinError(i, j) ); 
+        }
+
+        double max_c = 1.1 * h_cosmu->GetBinContent(h_cosmu->GetMaximumBin());
+        
+        h_cosmu->Draw("e1x0");
+        h_cosmu->SetTitle(hist_name1);
+        h_cosmu->GetYaxis()->SetRangeUser(0,max_c);
+        h_cosmu->GetXaxis()->SetTitle("T_{#mu}");   
+        h_cosmu->GetYaxis()->SetTitle("CC0#pi, d^{2}#sigma / dcos#theta_{#mu}dT_{#mu} [ 10^{-38} cm^{2} / GeV / n ]");
+        h_cosmu->SetTitleOffset(1.2, "Y");
+        h_cosmu->SetStats(kFALSE);
+
+        c_cosmu->SaveAs(file_name1);
+
+    } 
+    
+    delete h_cosmu;
+
+    delete c_cosmu;
+
+}
+
+
 void Smear( const double              & mass, 
             const std::vector<double> & truth_T, 
             const std::vector<double> & truth_cos, 
@@ -1113,9 +1295,9 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
     
     TLegend *leg_c     = new TLegend( 0.68, 0.68, 0.88, 0.88 );
 
-    TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0, 2 );
-    TH1D *h_cosmu_true = new TH1D ( "h_cosmu_true", "", y_bins, 0, 2 );
-    TH1D *h_cosmu_reco = new TH1D ( "h_cosmu_reco", "", y_bins, 0, 2 );
+    TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0.2, 2 );
+    TH1D *h_cosmu_true = new TH1D ( "h_cosmu_true", "", y_bins, 0.2, 2 );
+    TH1D *h_cosmu_reco = new TH1D ( "h_cosmu_reco", "", y_bins, 0.2, 2 );
      
     leg_c->AddEntry( h_cosmu, " Unfolded ", "l" );
     leg_c->AddEntry( h_cosmu_true, " True ", "l" );

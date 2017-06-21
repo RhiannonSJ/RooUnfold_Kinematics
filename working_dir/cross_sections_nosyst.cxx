@@ -166,8 +166,8 @@ void cross_sections_nosyst( const int &n_protons, const char pr_path[1024] ) {
     // Train response matrix
     //==============================================================================
 
-    TH2D *h_true_train  = new TH2D( "h_true_train", " true ", 20, -1, 1, 18, 0, 2 );     
-    TH2D *h_reco_train  = new TH2D( "h_reco_train", " reco ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_true_train  = new TH2D( "h_true_train", " true ", 20, -1, 1, 18, 0.2, 2 );     
+    TH2D *h_reco_train  = new TH2D( "h_reco_train", " reco ", 20, -1, 1, 18, 0.2, 2 );     
 
     RooUnfoldResponse response( h_reco_train, h_true_train );
 
@@ -179,9 +179,9 @@ void cross_sections_nosyst( const int &n_protons, const char pr_path[1024] ) {
    
     TCanvas * c = new TCanvas();
 
-    TH2D *h_true_test  = new TH2D( "h_true_test", " true ", 20, -1, 1, 18, 0, 2 );     
-    TH2D *h_cut_test   = new TH2D( "h_cut_test",  " cut  ", 20, -1, 1, 18, 0, 2 );     
-    TH2D *h_reco_test  = new TH2D( "h_reco_test", " reco ", 20, -1, 1, 18, 0, 2 );     
+    TH2D *h_true_test  = new TH2D( "h_true_test", " true ", 20, -1, 1, 18, 0.2, 2 );     
+    TH2D *h_cut_test   = new TH2D( "h_cut_test",  " cut  ", 20, -1, 1, 18, 0.2, 2 );     
+    TH2D *h_reco_test  = new TH2D( "h_reco_test", " reco ", 20, -1, 1, 18, 0.2, 2 );     
    
     // Scaling factor for all SBND events
     double scale = 7.56016;
@@ -1036,9 +1036,9 @@ void Slices ( TH2D *h_unfolded, TH2D *h_true, TH2D *h_reco, const char n_pr[1024
     
     TLegend *leg_c     = new TLegend( 0.68, 0.68, 0.88, 0.88 );
 
-    TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0, 2 );
-    TH1D *h_cosmu_true = new TH1D ( "h_cosmu_true", "", y_bins, 0, 2 );
-    TH1D *h_cosmu_reco = new TH1D ( "h_cosmu_reco", "", y_bins, 0, 2 );
+    TH1D *h_cosmu      = new TH1D ( "h_cosmu", "", y_bins, 0.2, 2 );
+    TH1D *h_cosmu_true = new TH1D ( "h_cosmu_true", "", y_bins, 0.2, 2 );
+    TH1D *h_cosmu_reco = new TH1D ( "h_cosmu_reco", "", y_bins, 0.2, 2 );
      
     leg_c->AddEntry( h_cosmu, " Unfolded ", "l" );
     leg_c->AddEntry( h_cosmu_true, " True ", "l" );

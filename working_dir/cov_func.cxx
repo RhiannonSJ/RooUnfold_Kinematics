@@ -25,20 +25,20 @@ int Map( unsigned int i, unsigned int j, unsigned int x_size, unsigned int y_siz
 
 }
 
-int GetXBin( unsigned int i, unsigned int size ){
+int GetXBin( unsigned int i, unsigned int size, unsigned int x_size ){
 
     if ( i >= size ) return -1;
 
-    return i % size; 
+    return i % x_size; 
 
 }
 
 
-int GetYBin( unsigned int i, unsigned int size ){
+int GetYBin( unsigned int i, unsigned int size, unsigned int x_size ){
 
     if ( i >= size ) return -1;
 
-    return i / size; 
+    return i / x_size; 
 
 }
 
