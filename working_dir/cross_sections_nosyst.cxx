@@ -214,7 +214,7 @@ void cross_sections_nosyst( const int &n_protons, const char pr_path[1024] ) {
     cout << " True after  : " << h_true_test->Integral() << endl;
 
     RooUnfoldBayes unfold( &response, h_reco_test, 1 );
-    TH2D *h_unfold_test =  (TH2D*) unfold.Hreco();
+    TH2D *h_unfold_test =  (TH2D*) unfold.Hreco((RooUnfold::ErrorTreatment)2);
 
     gStyle->SetPalette(55);
     gStyle->SetNumberContours(250);
@@ -278,6 +278,7 @@ void cross_sections_nosyst( const int &n_protons, const char pr_path[1024] ) {
     c->SaveAs( cut_path );
     
     // RECO
+    // Get the statistical errors
     h_reco_test->SetStats(kFALSE);
     h_reco_test->GetXaxis()->SetTitle("cos#theta_{#mu}");
     h_reco_test->GetYaxis()->SetTitle("T_{#mu}");

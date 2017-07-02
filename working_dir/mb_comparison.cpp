@@ -44,14 +44,12 @@ int mb_comparison(){
 
     c1->SaveAs("working_dir/err_test/sbnd_2D.png");
 
-    /*
+    
     cout << " MB : " << h_mb->Integral("width");
     
     cout << ", SBND : " << h_sbnd->Integral("width");
 
     cout << ", SBND / MB : " << (h_sbnd->Integral("width") / h_mb->Integral("width")) << endl;
-
-    */
 
     int nx_mb   = h_mb->GetNbinsX();
     int nx_sbnd = h_sbnd->GetNbinsX();
