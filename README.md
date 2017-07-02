@@ -25,8 +25,13 @@ Class to hold the particles in an event
     - Classify if signal
     - Classify if background
     - Classify if cut
+## Interaction
+Class to hold the interactions, be them signal or background
+    - Compare the event classification
+    - Make plots based on chosen signal and background interactions
+    - Unfolding response matrix filling
 
-# The function files
+# The functions
 ## Unfolding
 Functions involved in the unfolding process
     - Fill the response matrix
