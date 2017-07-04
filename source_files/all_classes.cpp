@@ -388,7 +388,7 @@ namespace xsec{
         std::vector< double > energy;
 
         // Loop over particles in the event 
-        for( int i = 0; i < m_particle_vect.size(); ++i ){
+        for(  unsigned int i = 0; i < m_particle_vect.size(); ++i ){
         
             // Check if the particle has the correct pdg
             if( m_particle_vect[i].GetPDG() == pdg ){
@@ -409,7 +409,7 @@ namespace xsec{
 
         // Loop over vector of particles and push back
         // any with the chosen pdg code
-        for( int i = 0; i < m_particle_vect.size(); ++i ){
+        for(  unsigned int i = 0; i < m_particle_vect.size(); ++i ){
             
             // Temporary particle
             Particle p = m_particle_vect[i];
@@ -460,9 +460,9 @@ namespace xsec{
     // ====================================================================================
     
     // Overload []
-    Particle Event::operator[]( int i ) const{
+    Particle Event::operator[]( unsigned int i ) const{
 
-        if ( i < 0 || i >= m_particle_vect.size() ){
+        if ( i >= m_particle_vect.size() ){
             std::cout << "Error: trying to access an element which is out of bounds " << std::endl;
             exit(1);
         }
@@ -475,7 +475,8 @@ namespace xsec{
     std::ostream& operator<<( std::ostream& os, const Event& ev ){
      
         os << "--------------------------------" << std::endl
-           << ( ev.GetIsCC() ? " CC " : " NC " ) << std::endl;
+           << ( ev.GetIsCC() ? " CC " : " NC " ) << std::endl
+           << " Physical process : " << ev.GetPhysicalProcess() << std::endl;
 
         for( int i = 0; i < ev.GetLength(); ++i ){
             os << ev[i];
@@ -512,15 +513,20 @@ namespace xsec{
             // Count the number of particles in the current event with the same PDG codes 
             // as given by the chosen topology
             int counter = 0;
-            
+           
             // Loop over particles in current event
-            for( int i = 0; i < m_particle_vect.size(); ++i ){
+            for(  unsigned int i = 0; i < m_particle_vect.size(); ++i ){
             
                 // Count the number of particles in event which match the topology
                 if( std::find( PDG_codes.begin(), PDG_codes.end(), m_particle_vect[i].GetPDG() ) != PDG_codes.end() ) ++counter;
             }
-            if( counter != n_total ) return false;
-        } 
+            if( n_total != -1 ){
+                if( counter != n_total ) return false;
+            }
+            else{
+                if( counter == 0 ) return false;
+            }
+        }
         
         return true; 
     
@@ -544,7 +550,7 @@ namespace xsec{
             int counter = 0;
             
             // Loop over particles in current event
-            for( int i = 0; i < m_particle_vect.size(); ++i ){
+            for(  unsigned int i = 0; i < m_particle_vect.size(); ++i ){
 
                 // Check if the particle is visible in the detector before adding to the counter
                 if( m_particle_vect[i].GetIfReconstructed() ){
@@ -553,7 +559,12 @@ namespace xsec{
                     if( std::find( PDG_codes.begin(), PDG_codes.end(), m_particle_vect[i].GetPDG() ) != PDG_codes.end() ) ++counter;
                 }
             }
-            if( counter != n_total ) return false;
+            if( n_total != -1 ){
+                if( counter != n_total ) return false;
+            }
+            else{
+                if( counter == 0 ) return false;
+            }
         } 
         
         return true; 
@@ -564,10 +575,13 @@ namespace xsec{
     // ====================================================================================
 
     // Constructor
-    Interaction::Interaction( top_map topology, int primary_pdg, bool is_cc ){
+    Interaction::Interaction( top_map topology, int primary_pdg, bool is_cc, double probability ){
         m_topology    = topology;
         m_primary_pdg = primary_pdg;
         m_is_cc       = is_cc;
+        m_probability = probability;
+
+        bool primary_found = false; 
 
         for( top_map::iterator it = topology.begin(); it != topology.end(); ++it ){
 
@@ -575,16 +589,14 @@ namespace xsec{
             std::vector< int > PDG_codes = it->first; 
             int n_total                  = it->second;
 
-            bool primary_found = false; 
-
-            for ( int i = 0; i < PDG_codes.size(); ++i ){
+            for ( unsigned int i = 0; i < PDG_codes.size(); ++i ){
 
                 if( std::find( PDG_codes.begin(), PDG_codes.end(), primary_pdg ) != PDG_codes.end() ){
                     
                     primary_found = true;
                     
                     if( PDG_codes.size() == 1 ){
-                        if( n_total < 1 ){
+                        if( n_total < 1 && n_total != -1 ){
                             std::cerr << " Must have at least one of the primary particle in the chosen signal " <<  std::endl;
                             exit(1);
                         }   
@@ -595,11 +607,11 @@ namespace xsec{
                     }
                 }
             }
-            if( !primary_found ){
-                std::cerr << " Must at least contain one somewhere " << std::endl;
-                exit(1);
-            
-            }
+        }
+        if( !primary_found ){
+            std::cerr << " Must at least contain one somewhere " << std::endl;
+            exit(1);
+         
         }
     }
 
@@ -621,6 +633,11 @@ namespace xsec{
     // Get CC
     bool Interaction::GetIsCC() const{
         return m_is_cc;
+    }
+
+    // Get probability
+    double Interaction::GetProbability() const{
+        return m_probability;
     }
 
 } // namespace : xsec

@@ -78,7 +78,7 @@ namespace xsec{
         public : 
 
             // Constructor
-            Interaction( top_map topology, int primary_pdg, bool is_cc );
+            Interaction( top_map topology, int primary_pdg, bool is_cc, double probability = 1. );
 
             // Getters
             // Get the map
@@ -90,10 +90,14 @@ namespace xsec{
             // Get CC
             bool GetIsCC() const;
 
+            // Get probability
+            double GetProbability() const;
+
         private :
 
             // Member variables
             top_map m_topology;
+            double m_probability;
             int m_primary_pdg;
             bool m_is_cc;
 
@@ -153,7 +157,7 @@ namespace xsec{
             bool CheckIfReconstructed( Interaction interaction );
 
             // Overload []
-            Particle operator[]( int i ) const; 
+            Particle operator[]( unsigned int i ) const; 
 
             // Overload ostream
             friend std::ostream& operator<<( std::ostream& , const Event& );

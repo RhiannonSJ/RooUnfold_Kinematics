@@ -219,15 +219,9 @@ void cross_sections_witherr( const int &n_protons, const char pr_path[1024] ) {
         h_reco_test->Fill( impur_smear_cos_test[i], impur_smear_T_test[i]);
     }
 
-    cout << " Reco before : " << h_reco_test->Integral() << endl;
-    cout << " True before : " << h_true_test->Integral() << endl << endl;
-    
     h_reco_test->Scale(scale);
     h_true_test->Scale(scale);
     h_cut_test->Scale(scale);
-
-    cout << " Reco after  : " << h_reco_test->Integral() << endl;
-    cout << " True after  : " << h_true_test->Integral() << endl;
 
     RooUnfoldBayes unfold( &response, h_reco_test, 1 );
     TH2D *h_unfold_test =  (TH2D*) unfold.Hreco((RooUnfold::ErrorTreatment)2);

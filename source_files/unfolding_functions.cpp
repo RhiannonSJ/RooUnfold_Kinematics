@@ -171,14 +171,134 @@ void GetResponse( const std::vector< Event >       & event_list,
                 Particle reco_primary = ev.GetMostEnergeticParticleByPDG( interaction.GetPrimaryPDG() );
                 response.Fake( reco_primary.GetCosSmeared(), reco_primary.GetTSmeared() );
             }
-            for( int j = 0; j < background.size(); ++j ){
+            for( unsigned int j = 0; j < background.size(); ++j ){
                 if( ev.CheckIfReconstructed( background[j] ) ){ 
+
                     Particle bg_primary = ev.GetMostEnergeticParticleByPDG( background[j].GetPrimaryPDG() );
-                    response.Fake( bg_primary.GetCosSmeared(), bg_primary.GetTSmeared() );
+
+                    // Generate a random probability to see if the backgrounds should be counted
+                    ROOT::Math::Random<ROOT::Math::GSLRngMT> *_rand = new ROOT::Math::Random<ROOT::Math::GSLRngMT>;
+                    _rand->SetSeed( time( NULL ) );
+                    double prob = _rand->Uniform();
+   
+                    // If the probability given is less than the random probability generated
+                    //  count the background
+                    if( prob <= background[j].GetProbability() ){
+                        response.Fake( bg_primary.GetCosSmeared(), bg_primary.GetTSmeared() );
+                    }
                 }
             }
         }
     }
 } 
 
+void GetTrueRecoHists( const std::vector< Event >       & event_list,
+                       const Interaction                & interaction,
+                       const std::vector< Interaction > & background,
+                       TH2D *true_hist,
+                       TH2D *reco_hist ) {
+    
+    for( unsigned  int i = 0; i < event_list.size(); ++i ) {
+        
+        // Temporary event for ease
+        Event ev = event_list[i];
+
+        if( ev.CheckIfTrue( interaction ) ) {
+       
+            // Get the primary PDG code
+            Particle primary = ev.GetMostEnergeticParticleByPDG( interaction.GetPrimaryPDG() );
+            
+            true_hist->Fill( primary.GetCos(), primary.GetT() );
+                    
+            if( ev.CheckIfReconstructed( interaction ) ){
+                reco_hist->Fill( primary.GetCosSmeared(), primary.GetTSmeared() );
+            }
+        }
+        else{
+            if( ev.CheckIfReconstructed( interaction ) ){
+                Particle reco_primary = ev.GetMostEnergeticParticleByPDG( interaction.GetPrimaryPDG() );
+                reco_hist->Fill( reco_primary.GetCosSmeared(), reco_primary.GetTSmeared() );
+            }
+            for( unsigned int j = 0; j < background.size(); ++j ){
+                if( ev.CheckIfReconstructed( background[j] ) ){ 
+                    
+                    Particle bg_primary = ev.GetMostEnergeticParticleByPDG( background[j].GetPrimaryPDG() );
+                    
+                    // Generate a random probability to see if the backgrounds should be counted
+                    ROOT::Math::Random<ROOT::Math::GSLRngMT> *_rand = new ROOT::Math::Random<ROOT::Math::GSLRngMT>;
+                    _rand->SetSeed( time( NULL ) );
+                    double prob = _rand->Uniform();
+    
+                    // If the probability given is less than the random probability generated
+                    //  count the background
+                    if( prob <= background[j].GetProbability() ){
+                        reco_hist->Fill( bg_primary.GetCosSmeared(), bg_primary.GetTSmeared() );
+                    }
+                }
+            }
+        }
+    }
+} 
+
+void GetRecoEventList( const std::vector< Event >       & event_list,
+                       const Interaction                & interaction,
+                       const std::vector< Interaction > & background,
+                       std::vector< Particle >          & primary_list,
+                       std::vector< Event >             & reco_event_list ) {
+    
+    for( unsigned  int i = 0; i < event_list.size(); ++i ) {
+        
+        // Temporary event for ease
+        Event ev = event_list[i];
+
+        if( ev.CheckIfTrue( interaction ) ) {
+       
+            if( ev.CheckIfReconstructed( interaction ) ){
+                
+                primary_list.push_back(  ev.GetMostEnergeticParticleByPDG( interaction.GetPrimaryPDG() ) );
+                
+                reco_event_list.push_back( ev );
+            }
+        }
+        else{
+            if( ev.CheckIfReconstructed( interaction ) ){
+             
+                primary_list.push_back(  ev.GetMostEnergeticParticleByPDG( interaction.GetPrimaryPDG() ) );
+                
+                reco_event_list.push_back( ev );
+            }
+            for( unsigned int j = 0; j < background.size(); ++j ){
+                if( ev.CheckIfReconstructed( background[j] ) ){ 
+                    
+                    // Generate a random probability to see if the backgrounds should be counted
+                    ROOT::Math::Random<ROOT::Math::GSLRngMT> *_rand = new ROOT::Math::Random<ROOT::Math::GSLRngMT>;
+                    _rand->SetSeed( time( NULL ) );
+                    double prob = _rand->Uniform();
+    
+                    // If the probability given is less than the random probability generated
+                    //  count the background
+                    if( prob <= background[j].GetProbability() ){
+                        
+                        primary_list.push_back(  ev.GetMostEnergeticParticleByPDG( background[j].GetPrimaryPDG() ) );
+             
+                        reco_event_list.push_back( ev );
+                    }
+                }
+            }
+        }
+    }
+} 
+void Set2DHistInfo( TH2D *hist, const char x_axis[1024], const char y_axis[1024], const char title[1024], const char draw_opt[1024] ){
+
+
+    gStyle->SetPalette(55);
+    gStyle->SetNumberContours(250);
+
+    hist->SetStats(kFALSE);
+    hist->GetXaxis()->SetTitle( x_axis );
+    hist->GetYaxis()->SetTitle( y_axis );
+    hist->SetTitle( title );
+    hist->Draw( draw_opt );
+
+}
 #endif

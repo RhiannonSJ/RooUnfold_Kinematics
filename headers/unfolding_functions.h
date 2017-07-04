@@ -25,6 +25,22 @@ void GetResponse( const std::vector< Event >       & event_list,
                   const std::vector< Interaction > & background,
                   RooUnfoldResponse                & response );
                              
+// Get the true and reconstructed histograms
+void GetTrueRecoHists( const std::vector< Event >       & event_list,
+                       const Interaction                & interaction,
+                       const std::vector< Interaction > & background,
+                       TH2D *true_hist,
+                       TH2D *reco_hist );
+
+// Get event list of reconstructed events
+void GetRecoEventList( const std::vector< Event >       & event_list,
+                       const Interaction                & interaction,
+                       const std::vector< Interaction > & background,
+                       std::vector< Particle >          & primary_list,
+                       std::vector< Event >             & reco_event_list );
+
+// Set info for 2D histograms
+void Set2DHistInfo( TH2D *hist, const char x_axis[1024], const char y_axis[1024], const char title[1024], const char draw_opt[1024] );
 
 #endif
 
