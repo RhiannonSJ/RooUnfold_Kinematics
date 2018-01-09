@@ -66,4 +66,5 @@ Functions to compare different qualifications of a single signal definition
 - Slice different definitions of a single signal sample and slice
 - Apply errors from RooUnfold and flux 
 
-============================================================================================================================================
+--------------------------------------------------------------------------------------------------------------------------------------------
+
